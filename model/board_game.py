@@ -80,9 +80,17 @@ class BoardGame:
             if value is None:
                 return None
 
-            # Special handling for play_time_minutes with ranges (e.g., "61-90")
+            # Special handling for play_time_minutes with ranges (e.g., "61-90") or "do 15"
             if attr_name == 'play_time_minutes':
                 value_str = str(value).strip()
+                # Handle "do 15" (up to 15) -> convert to 10
+                if value_str.lower().startswith('do '):
+                    try:
+                        max_time = int(value_str.split()[1])
+                        return 10  # Fixed value for "up to X" format
+                    except (ValueError, TypeError, IndexError):
+                        return None
+                # Handle ranges (e.g., "61-90")
                 if '-' in value_str:
                     try:
                         parts = value_str.split('-')
@@ -190,14 +198,15 @@ class BoardGame:
             self.my_rating += 10
 
         # BGG rating
-        if self.bgg_rating >= 8:
-            self.my_rating += 10
-        elif self.bgg_rating >= 7:
-            self.my_rating += 5
-        elif self.bgg_rating <= 6:
-            self.my_rating -= 20
-        elif self.bgg_rating <= 5:
-            self.my_rating -= 40
+        if self.bgg_rating is not None:
+            if self.bgg_rating >= 8:
+                self.my_rating += 10
+            elif self.bgg_rating >= 7:
+                self.my_rating += 5
+            elif self.bgg_rating <= 6:
+                self.my_rating -= 20
+            elif self.bgg_rating <= 5:
+                self.my_rating -= 40
 
         # Play time
         if self.play_time_minutes > 120:
@@ -206,34 +215,34 @@ class BoardGame:
             self.my_rating -= 50
 
         # Game categories
-
-        very_valueable_categories = [
-            'Kostkové'
-        ]
-        valueable_categories = [
-            'Karetní', 'Dobrodružné', 'Fantasy',
-            'Průzkum vesmíru', 'Sci-fi', 'Ekonomické'
-        ]
-        for category in self.game_categories:
-            if category in very_valueable_categories:
-                self.my_rating += 50
-            if category in valueable_categories:
-                self.my_rating += 10
+        if self.game_categories is not None:
+            very_valueable_categories = [
+                'Kostkové'
+            ]
+            valueable_categories = [
+                'Karetní', 'Dobrodružné', 'Fantasy',
+                'Průzkum vesmíru', 'Sci-fi', 'Ekonomické'
+            ]
+            for category in self.game_categories:
+                if category in very_valueable_categories:
+                    self.my_rating += 50
+                if category in valueable_categories:
+                    self.my_rating += 10
 
         # Game mechanics
-        very_valueable_mechanics = [
-            'Solo / Solitaire Game', 'Cooperative Game', 'Modular Board',
-            'Dice Rolling'
-        ]
-        valueable_mechanics = [
-            'Variable Set-up', 'Scenario / Mission / Campaign Game',
-            'Hand Management', 'Tile Placement'
-        ]
-
-        for mechanic in self.game_mechanics:
-            if mechanic in very_valueable_mechanics:
-                self.my_rating += 50
-            elif mechanic in valueable_mechanics:
-                self.my_rating += 10
+        if self.game_mechanics is not None:
+            very_valueable_mechanics = [
+                'Solo / Solitaire Game', 'Cooperative Game', 'Modular Board',
+                'Dice Rolling'
+            ]
+            valueable_mechanics = [
+                'Variable Set-up', 'Scenario / Mission / Campaign Game',
+                'Hand Management', 'Tile Placement'
+            ]
+            for mechanic in self.game_mechanics:
+                if mechanic in very_valueable_mechanics:
+                    self.my_rating += 50
+                if mechanic in valueable_mechanics:
+                    self.my_rating += 10
 
         return self.my_rating

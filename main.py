@@ -1,24 +1,16 @@
 from website_caller import WebsiteCaller
-from model.board_game import BoardGame
+from utils import search_for_game
+
 
 def main():
     # Use browser automation to execute JavaScript and wait for dynamic content
     caller = WebsiteCaller(timeout=30, use_browser=True)
-    
     try:
-        # caller.save_html(
-        #     "https://www.tlamagames.com/", 
-        #     "hra.html",
-        #     output_dir="output",
-        #     wait_for_selector="#fvStudio-component-topproduct")
-
-        game_data = caller.get_text("https://www.tlamagames.com/deskove-hry/cestou-pokroku/")
-        board_game = BoardGame(game_data)
-
-        board_game.print_info()
-        print(board_game.rate())
+        games = search_for_game(caller,["cat:solo","cat:dice_rolling","cat:modular_board"])
+        for game in games:
+            print(game.name, game.final_price+" Kč", game.my_rating)
     except Exception as e:
-        print(f"Error: {e}")
+        raise e
     finally:
         caller.close()
 
