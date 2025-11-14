@@ -12,9 +12,11 @@ def main():
         #     output_dir="output",
         #     wait_for_selector="#fvStudio-component-topproduct")
 
-        game_data = caller.get_text("https://www.tlamagames.com/deskove-hry/papyria/")
+        game_data = caller.get_text("https://www.tlamagames.com/deskove-hry/cestou-pokroku/")
         board_game = BoardGame(game_data)
-        print(board_game.final_price, board_game.distributor, board_game.min_players, board_game.max_players, board_game.play_time_minutes, board_game.bgg_rating, board_game.complexity, board_game.author, board_game.game_categories, board_game.game_mechanics, board_game.year_published, board_game.artists)
+
+        board_game.print_info()
+        print(board_game.rate())
     except Exception as e:
         print(f"Error: {e}")
     finally:

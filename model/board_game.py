@@ -24,10 +24,10 @@ class BoardGame:
     }
     
     # Fields that should be converted to integers
-    INTEGER_FIELDS = {'min_age', 'min_players', 'max_players', 'play_time_minutes', 'year_published', 'complexity'}
+    INTEGER_FIELDS = {'min_age', 'min_players', 'max_players', 'play_time_minutes', 'year_published'}
     
     # Fields that should be converted to floats
-    FLOAT_FIELDS = {'weight_kg', 'bgg_rating'}
+    FLOAT_FIELDS = {'weight_kg', 'bgg_rating', 'complexity'}
     
     # Fields that are always lists
     LIST_FIELDS = {'rules_language', 'game_categories', 'game_mechanics', 'artists'}
@@ -79,6 +79,20 @@ class BoardGame:
                 value = value[0] if value else None
             if value is None:
                 return None
+
+            # Special handling for play_time_minutes with ranges (e.g., "61-90")
+            if attr_name == 'play_time_minutes':
+                value_str = str(value).strip()
+                if '-' in value_str:
+                    try:
+                        parts = value_str.split('-')
+                        if len(parts) == 2:
+                            min_time = int(parts[0].strip())
+                            max_time = int(parts[1].strip())
+                            return int((min_time + max_time) / 2)
+                    except (ValueError, TypeError):
+                        return None
+
             try:
                 return int(str(value).strip())
             except (ValueError, TypeError):
@@ -151,3 +165,75 @@ class BoardGame:
             if attr_name:
                 parsed_value = self._parse_value(key, value)
                 setattr(self, attr_name, parsed_value)
+
+    def print_info(self):
+        print(self.name, self.final_price+" Kč", self.distributor, self.category, self.weight_kg, self.ean, self.game_type, self.min_age, self.game_language, self.rules_language, self.min_players, self.max_players, self.play_time_minutes, self.bgg_rating, self.complexity, self.author, self.game_categories, self.game_mechanics, self.year_published, self.artists)
+
+    def rate(self):
+        self.my_rating = 0
+        # Distributor
+        if self.distributor == 'Mindok':
+            self.my_rating += 10
+        elif self.distributor == 'Asmodee Czech Republic':
+            self.my_rating -= 10000
+            return self.my_rating
+
+        # Základní hra / rozšíření
+        if self.game_type == 'Základní hra':
+            self.my_rating += 10
+        elif self.game_type == 'Rozšíření':
+            self.my_rating -= 10
+            return self.my_rating
+
+        # Min players
+        if self.min_players == 1:
+            self.my_rating += 10
+
+        # BGG rating
+        if self.bgg_rating >= 8:
+            self.my_rating += 10
+        elif self.bgg_rating >= 7:
+            self.my_rating += 5
+        elif self.bgg_rating <= 6:
+            self.my_rating -= 20
+        elif self.bgg_rating <= 5:
+            self.my_rating -= 40
+
+        # Play time
+        if self.play_time_minutes > 120:
+            self.my_rating -= 10
+        elif self.play_time_minutes <= 30:
+            self.my_rating -= 50
+
+        # Game categories
+
+        very_valueable_categories = [
+            'Kostkové'
+        ]
+        valueable_categories = [
+            'Karetní', 'Dobrodružné', 'Fantasy',
+            'Průzkum vesmíru', 'Sci-fi', 'Ekonomické'
+        ]
+        for category in self.game_categories:
+            if category in very_valueable_categories:
+                self.my_rating += 50
+            if category in valueable_categories:
+                self.my_rating += 10
+
+        # Game mechanics
+        very_valueable_mechanics = [
+            'Solo / Solitaire Game', 'Cooperative Game', 'Modular Board',
+            'Dice Rolling'
+        ]
+        valueable_mechanics = [
+            'Variable Set-up', 'Scenario / Mission / Campaign Game',
+            'Hand Management', 'Tile Placement'
+        ]
+
+        for mechanic in self.game_mechanics:
+            if mechanic in very_valueable_mechanics:
+                self.my_rating += 50
+            elif mechanic in valueable_mechanics:
+                self.my_rating += 10
+
+        return self.my_rating
