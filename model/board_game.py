@@ -200,6 +200,8 @@ class BoardGame:
         # BGG rating
         if self.bgg_rating is not None:
             if self.bgg_rating >= 8:
+                self.my_rating += 20
+            elif self.bgg_rating >= 7.5:
                 self.my_rating += 10
             elif self.bgg_rating >= 7:
                 self.my_rating += 5
