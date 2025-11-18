@@ -32,8 +32,9 @@ class BoardGame:
     # Fields that are always lists
     LIST_FIELDS = {'rules_language', 'game_categories', 'game_mechanics', 'artists'}
 
-    def __init__(self, html_page_data):
+    def __init__(self, html_page_data, url):
         self.html_page_data = html_page_data
+        self.url = url
         self.name = None
         self.final_price = None
         self.distributor = None
@@ -54,6 +55,7 @@ class BoardGame:
         self.game_mechanics = None
         self.year_published = None
         self.artists = None
+        self.has_demonic_vibe = 0
         self.parameters = {}
         self.from_html(html_page_data)
 
@@ -83,6 +85,12 @@ class BoardGame:
             # Special handling for play_time_minutes with ranges (e.g., "61-90") or "do 15"
             if attr_name == 'play_time_minutes':
                 value_str = str(value).strip()
+                # Handle "neuvedena" (not stated) -> return 0
+                if value_str.lower() == 'neuvedena':
+                    return 0
+                # Handle "181+" (181 or more) -> convert to 300
+                if value_str.endswith('+'):
+                    return 300  # Fixed value for "X+" format
                 # Handle "do 15" (up to 15) -> convert to 10
                 if value_str.lower().startswith('do '):
                     try:
@@ -174,11 +182,30 @@ class BoardGame:
                 parsed_value = self._parse_value(key, value)
                 setattr(self, attr_name, parsed_value)
 
-    def print_info(self):
+
+    def get_data_row(self):
+        return f"{self.name} | {self.final_price} Kč | {self.my_rating} | {self.url}"
+
+    def print_all_info(self):
         print(self.name, self.final_price+" Kč", self.distributor, self.category, self.weight_kg, self.ean, self.game_type, self.min_age, self.game_language, self.rules_language, self.min_players, self.max_players, self.play_time_minutes, self.bgg_rating, self.complexity, self.author, self.game_categories, self.game_mechanics, self.year_published, self.artists)
 
     def rate(self):
         self.my_rating = 0
+
+        # Price
+        if self.final_price is not None:
+            final_price = int(self.final_price)
+            if final_price < 500:
+                self.my_rating += 50
+            elif final_price < 1000:
+                self.my_rating += 20
+            elif final_price < 1200:
+                self.my_rating += 5
+            elif final_price >= 1200 and final_price < 2000:
+                pass
+            else:
+                self.my_rating -= 50
+
         # Distributor
         if self.distributor == 'Mindok':
             self.my_rating += 10
@@ -211,10 +238,11 @@ class BoardGame:
                 self.my_rating -= 40
 
         # Play time
-        if self.play_time_minutes > 120:
-            self.my_rating -= 10
-        elif self.play_time_minutes <= 30:
-            self.my_rating -= 50
+        if self.play_time_minutes is not None:
+            if self.play_time_minutes > 120:
+                self.my_rating -= 10
+            elif self.play_time_minutes <= 30:
+                self.my_rating -= 50
 
         # Game categories
         if self.game_categories is not None:
@@ -223,13 +251,21 @@ class BoardGame:
             ]
             valueable_categories = [
                 'Karetní', 'Dobrodružné', 'Fantasy',
-                'Průzkum vesmíru', 'Sci-fi', 'Ekonomické'
+                'Průzkum vesmíru', 'Sci-fi', 'Ekonomické',
+                'Průzkum', 'Bludiště'
             ]
+            unwanted_categories = [
+                'V reálném čase', 'Horror'
+            ]
+
             for category in self.game_categories:
                 if category in very_valueable_categories:
                     self.my_rating += 50
                 if category in valueable_categories:
-                    self.my_rating += 10
+                    self.my_rating += 15
+                if category in unwanted_categories:
+                    self.my_rating -= 100
+                    return self.my_rating
 
         # Game mechanics
         if self.game_mechanics is not None:
@@ -239,12 +275,19 @@ class BoardGame:
             ]
             valueable_mechanics = [
                 'Variable Set-up', 'Scenario / Mission / Campaign Game',
-                'Hand Management', 'Tile Placement'
+                'Hand Management', 'Tile Placement', 'Hand Management',
+                'Open Drafting', 'Variable Player Powers', 'Tech Trees / Tech Tracks'
+            ]
+            unwanted_mechanics = [
+                'Real-Time'
             ]
             for mechanic in self.game_mechanics:
                 if mechanic in very_valueable_mechanics:
                     self.my_rating += 50
                 if mechanic in valueable_mechanics:
                     self.my_rating += 10
+                if mechanic in unwanted_mechanics:
+                    self.my_rating -= 100
+                    return self.my_rating
 
         return self.my_rating

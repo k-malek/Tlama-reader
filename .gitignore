@@ -68,3 +68,6 @@ dmypy.json
 .env.local
 
 output/
+
+# Database
+games.db

@@ -1,48 +1,66 @@
 from website_caller import WebsiteCaller
 from bs4 import BeautifulSoup
-from config import BASE_URL
+from config import BASE_URL, ENDPOINTS, FILTERS
 from model.board_game import BoardGame
+from database import game_exists, load_game, save_game
 
-FILTERS = {
-    "available":"stock=1",
-    "games_only":"pv117=2127",
-    "for_one_player":"pv129=2142",
-    "easy":"pv141=2409,14496,14553,13704,14583,14499,14613,13761,14193,14052,2367,14067,14352,14079,13746,6316",
-    "hard":"pv141=6316,14217,14082,13596,14382,2205,13935,4898,13998,13644,4520,14394,15450,14325,14994,2271,15288,14334,16470,16482,18048,15717,4904,26046",
-    # Categories, use "cat:dice_rolling"
-    "solo":"13620",
-    "dice_rolling":"13803",
-    "modular_board":"13875"
-}
-
-def search_for_game(caller: WebsiteCaller, filters: list = None) -> list:
+def search_for_game(caller: WebsiteCaller, filters: list = None, pages: int = 3, endpoint: str = "shop") -> list:
+    games_urls = []
     basic_filters = ["available", "games_only"]
     filters = basic_filters + (filters or [])
-    url = f"{BASE_URL}/deskove-hry/?"
-    categories="pv264="
+    mechanics="pv264="
+    categories="pv258="
+    query=""
     for filter in filters:
         if "cat:" in filter:
             categories += f"{FILTERS[filter.replace('cat:', '')]},"
+        elif "mech:" in filter:
+            mechanics += f"{FILTERS[filter.replace('mech:', '')]},"
         else:
-            url += f"{FILTERS[filter]}&"
-    if categories != "pv264=":
-        url += f"{categories[:-1]}&"
-    url = url[:-1]
-    print(url)
-    html_resp = caller.get_text(url)
-    soup = BeautifulSoup(html_resp, "html.parser")
-    games = soup.find("div", id="products").find_all("div", class_="product")
-    games_urls = [game.find("a").get("href") for game in games]
+            query += f"{FILTERS[filter]}&"
+    if categories != "pv258=":
+        query += f"{categories[:-1]}&"
+    if mechanics != "pv264=":
+        query += f"{mechanics[:-1]}&"
+    query = query[:-1]
+    for i in range(1, pages + 1):
+        url = f"{BASE_URL}{ENDPOINTS[endpoint]}strana-{i}/?"
+        url += query
+        print(url)
+        html_resp = caller.get_text(url)
+        soup = BeautifulSoup(html_resp, "html.parser")
+        games = soup.find("div", id="products").find_all("div", class_="product")
+        games_urls.extend([game.find("a").get("href") for game in games])
     games = games_standings(games_urls, caller)
     return games
 
 def games_standings(games_urls: list, caller: WebsiteCaller):
     games = []
     for game_url in games_urls:
-        print(f"{BASE_URL}{game_url}")
-        game_data = caller.get_text(f"{BASE_URL}{game_url}")
-        board_game = BoardGame(game_data)
-        board_game.rate()
+        full_url = f"{BASE_URL}{game_url}"
+        print(full_url)
+
+        if game_exists(full_url):
+            board_game = load_game(full_url)
+            save_game(board_game)
+        else:
+            game_data = caller.get_text(full_url)
+            try:
+                board_game = BoardGame(game_data, full_url)
+            except ValueError as e:
+                print(f"Error parsing game data: {e}")
+                continue
+            board_game.rate()
+            save_game(board_game)
+
         games.append(board_game)
     games.sort(key=lambda x: x.my_rating, reverse=True)
     return games
+
+def present_results(games: list):
+    print("--------------------------------")
+    print("# | Name | Price | Rating | URL")
+    print("--------------------------------")
+    for index, game in enumerate(games):
+        print(f"{index + 1}. | {game.get_data_row()}")
+    print("--------------------------------")
