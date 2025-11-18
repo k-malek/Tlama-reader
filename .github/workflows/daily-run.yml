@@ -48,4 +48,3 @@ jobs:
           name: games-database
           path: games.db
           retention-days: 7
-
