@@ -158,8 +158,9 @@
         }
         .tag-list {
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: 8px;
+            margin-bottom: 8px;
         }
         .tag {
             background-color: #e3f2fd;
@@ -168,7 +169,7 @@
             border-radius: 20px;
             font-size: 13px;
             font-weight: 500;
-            flex: 0 0 calc(25% - 6px);
+            flex: 1 1 0;
             box-sizing: border-box;
             text-align: center;
         }
@@ -210,6 +211,9 @@
             }
             .price-value {
                 font-size: 36px;
+            }
+            .tag-list {
+                flex-wrap: wrap;
             }
             .tag {
                 flex: 0 0 calc(50% - 4px);
@@ -301,7 +305,9 @@
                 <div class="section-title">🎯 Categories</div>
                 <div class="tag-list">
                     {% for category in game.game_categories %}
-                    <span class="tag">{{ category }}</span>
+                        {% assign index_mod = forloop.index0 | modulo: 4 %}
+                        {% if index_mod == 0 and forloop.index0 > 0 %}</div><div class="tag-list">{% endif %}
+                        <span class="tag">{{ category }}</span>
                     {% endfor %}
                 </div>
             </div>
@@ -312,7 +318,9 @@
                 <div class="section-title">⚙️ Mechanics</div>
                 <div class="tag-list">
                     {% for mechanic in game.game_mechanics %}
-                    <span class="tag">{{ mechanic }}</span>
+                        {% assign index_mod = forloop.index0 | modulo: 4 %}
+                        {% if index_mod == 0 and forloop.index0 > 0 %}</div><div class="tag-list">{% endif %}
+                        <span class="tag">{{ mechanic }}</span>
                     {% endfor %}
                 </div>
             </div>
