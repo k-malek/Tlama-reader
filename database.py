@@ -44,11 +44,10 @@ def _init_db():
             year_published INTEGER,
             artists TEXT,
             my_rating REAL,
-            has_demonic_vibe INTEGER DEFAULT 0
+            has_demonic_vibe INTEGER DEFAULT 0,
+            image TEXT
         )
     """)
-    conn.commit()
-    conn.close()
 
 
 def game_exists(url: str) -> bool:
@@ -86,8 +85,8 @@ def save_game(board_game: BoardGame):
             weight_kg, ean, game_type, min_age, game_language, rules_language,
             min_players, max_players, play_time_minutes, bgg_rating, complexity,
             author, game_categories, game_mechanics, year_published, artists, my_rating,
-            has_demonic_vibe
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            has_demonic_vibe, image
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         board_game.url,
         ensure_not_list(board_game.name),
@@ -111,7 +110,8 @@ def save_game(board_game: BoardGame):
         board_game.year_published,
         encode_list(board_game.artists),
         board_game.my_rating,
-        1 if getattr(board_game, 'has_demonic_vibe', 0) else 0
+        1 if getattr(board_game, 'has_demonic_vibe', 0) else 0,
+        getattr(board_game, 'image', None)
     ))
     conn.commit()
     conn.close()
@@ -159,6 +159,10 @@ def load_game(url: str) -> Optional[BoardGame]:
         board_game.has_demonic_vibe = bool(row['has_demonic_vibe'])
     except (KeyError, IndexError):
         board_game.has_demonic_vibe = 0
+    try:
+        board_game.image = row['image']
+    except (KeyError, IndexError):
+        board_game.image = None
     
     old_rating = row['my_rating']
     board_game.rate()

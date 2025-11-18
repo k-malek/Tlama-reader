@@ -26,12 +26,17 @@ def get_promo_game(caller: WebsiteCaller) -> BoardGame:
 
     # Check if game exists in database
     if game_exists(url):
-        return load_game(url)
+        board_game = load_game(url)
+        # If image is missing (old games saved before image column), re-fetch to populate it
+        if not board_game.image:
+            game_data = caller.get_text(url)
+            board_game = BoardGame(game_data, url)
+            save_game(board_game)
+        return board_game
 
     # Fetch from website
     game_data = caller.get_text(url)
     board_game = BoardGame(game_data, url)
-    board_game.rate()
 
     # Save to database
     save_game(board_game)

@@ -57,8 +57,10 @@ class BoardGame:
         self.year_published = None
         self.artists = None
         self.has_demonic_vibe = 0
+        self.image = None
         self.parameters = {}
         self.from_html(html_page_data)
+        self.rate()
 
     def _parse_value(self, key, value):
         """Parse and convert value based on field type."""
@@ -150,6 +152,11 @@ class BoardGame:
             span = brand_link.find('span')
             self.distributor = span.text.strip() if span else None
         
+        # Extract main image URL from highlighted thumbnail
+        highlighted_link = soup.find('a', class_='highlighted')
+        if highlighted_link and highlighted_link.get('href'):
+            self.image = highlighted_link['href']
+
         self.parameters = {}
         details_table = soup.find('div', class_='extended-description').find('table', class_='detail-parameters')
         
@@ -282,3 +289,27 @@ class BoardGame:
                     return self.my_rating
 
         return self.my_rating
+
+    def to_json(self):
+        """Convert BoardGame instance to a JSON-serializable dictionary."""
+        return {
+            'url': self.url,
+            'name': self.name,
+            'final_price': self.final_price,
+            'distributor': self.distributor,
+            'game_type': self.game_type,
+            'min_age': self.min_age,
+            'game_language': self.game_language,
+            'rules_language': self.rules_language,
+            'min_players': self.min_players,
+            'max_players': self.max_players,
+            'play_time_minutes': self.play_time_minutes,
+            'bgg_rating': self.bgg_rating,
+            'complexity': self.complexity,
+            'game_categories': self.game_categories,
+            'game_mechanics': self.game_mechanics,
+            'year_published': self.year_published,
+            'parameters': self.parameters,
+            'my_rating': self.my_rating,
+            'image': self.image
+        }
