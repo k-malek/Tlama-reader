@@ -260,7 +260,7 @@
                 {% if game.play_time_minutes %}
                 <div class="detail-item">
                     <div class="detail-label">Play Time</div>
-                    <div class="detail-value">{{ game.play_time_minutes }} min</div>
+                    <div class="detail-value">~ {{ game.play_time_minutes }} min</div>
                 </div>
                 {% endif %}
 
@@ -282,13 +282,6 @@
                 <div class="detail-item">
                     <div class="detail-label">Complexity</div>
                     <div class="detail-value">{{ game.complexity }}/5</div>
-                </div>
-                {% endif %}
-
-                {% if game.game_type %}
-                <div class="detail-item">
-                    <div class="detail-label">Type</div>
-                    <div class="detail-value">{{ game.game_type }}</div>
                 </div>
                 {% endif %}
             </div>

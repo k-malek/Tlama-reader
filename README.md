@@ -95,3 +95,37 @@ Run the example script:
 ```bash
 python example.py
 ```
+
+## GitHub Actions Setup
+
+This project includes a GitHub Actions workflow that runs daily at 6:30 AM UTC+1 to check for promo games and send notifications via OneSignal.
+
+### Setup Instructions
+
+1. **Push your code to GitHub** (make sure the repository is public for free GitHub Actions)
+
+2. **Add GitHub Secrets**:
+   - Go to your repository → Settings → Secrets and variables → Actions
+   - Add the following secrets:
+     - `ONESIGNAL_API_KEY` - Your OneSignal REST API key
+     - `ONESIGNAL_ORGANIZATION_API_KEY` - Your OneSignal Organization API key
+     - `ONESIGNAL_APP_ID` - Your OneSignal App ID
+
+3. **The workflow will automatically run**:
+   - Daily at 6:30 AM UTC+1 (5:30 AM UTC)
+   - You can also manually trigger it from the Actions tab → "Daily Promo Game Check" → "Run workflow"
+
+### Workflow Details
+
+The workflow (`/.github/workflows/daily-run.yml`):
+- Installs Python 3.11+ and dependencies using `uv`
+- Installs Playwright browsers (Chromium)
+- Runs `main.py` which checks for promo games
+- If a game has a rating > 100, it sends a custom event to OneSignal
+- Optionally uploads the database as an artifact for debugging (retained for 7 days)
+
+### Viewing Workflow Runs
+
+- Go to the "Actions" tab in your GitHub repository
+- Click on "Daily Promo Game Check" to see run history
+- Click on any run to see logs and debug issues
