@@ -4,7 +4,7 @@ from config import BASE_URL, ENDPOINTS, FILTERS
 from model.board_game import BoardGame
 from database import game_exists, load_game, save_game
 
-def search_for_game(caller: WebsiteCaller, filters: list = None, pages: int = 3, endpoint: str = "shop") -> list:
+def search_for_game(caller: WebsiteCaller, filters: list = None, pages: int = 1000, endpoint: str = "shop") -> list:
     games_urls = []
     basic_filters = ["available", "games_only"]
     filters = basic_filters + (filters or [])
@@ -29,7 +29,11 @@ def search_for_game(caller: WebsiteCaller, filters: list = None, pages: int = 3,
         print(url)
         html_resp = caller.get_text(url)
         soup = BeautifulSoup(html_resp, "html.parser")
-        games = soup.find("div", id="products").find_all("div", class_="product")
+        try:
+            games = soup.find("div", id="products").find_all("div", class_="product")
+        except AttributeError as e:
+            print(f"No more pages: {e}")
+            break
         games_urls.extend([game.find("a").get("href") for game in games])
     games = games_standings(games_urls, caller)
     return games

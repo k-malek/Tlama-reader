@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+from config import FAVORITES
 
 
 class BoardGame:
@@ -192,6 +193,12 @@ class BoardGame:
     def rate(self):
         self.my_rating = 0
 
+        # Vibe
+
+        if self.has_demonic_vibe:
+            self.my_rating -= 10000
+            return self.my_rating
+
         # Price
         if self.final_price is not None:
             final_price = int(self.final_price)
@@ -246,17 +253,9 @@ class BoardGame:
 
         # Game categories
         if self.game_categories is not None:
-            very_valueable_categories = [
-                'Kostkové'
-            ]
-            valueable_categories = [
-                'Karetní', 'Dobrodružné', 'Fantasy',
-                'Průzkum vesmíru', 'Sci-fi', 'Ekonomické',
-                'Průzkum', 'Bludiště'
-            ]
-            unwanted_categories = [
-                'V reálném čase', 'Horror'
-            ]
+            very_valueable_categories = FAVORITES['categories']['very_valuable']
+            valueable_categories = FAVORITES['categories']['valuable']
+            unwanted_categories = FAVORITES['categories']['unwanted']
 
             for category in self.game_categories:
                 if category in very_valueable_categories:
@@ -269,18 +268,10 @@ class BoardGame:
 
         # Game mechanics
         if self.game_mechanics is not None:
-            very_valueable_mechanics = [
-                'Solo / Solitaire Game', 'Cooperative Game', 'Modular Board',
-                'Dice Rolling'
-            ]
-            valueable_mechanics = [
-                'Variable Set-up', 'Scenario / Mission / Campaign Game',
-                'Hand Management', 'Tile Placement', 'Hand Management',
-                'Open Drafting', 'Variable Player Powers', 'Tech Trees / Tech Tracks'
-            ]
-            unwanted_mechanics = [
-                'Real-Time'
-            ]
+            very_valueable_mechanics = FAVORITES['mechanics']['very_valuable']
+            valueable_mechanics = FAVORITES['mechanics']['valuable']
+            unwanted_mechanics = FAVORITES['mechanics']['unwanted']
+
             for mechanic in self.game_mechanics:
                 if mechanic in very_valueable_mechanics:
                     self.my_rating += 50
