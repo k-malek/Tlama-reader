@@ -46,7 +46,13 @@ def games_standings(games_urls: list, caller: WebsiteCaller):
 
         if game_exists(full_url):
             board_game = load_game(full_url)
-            save_game(board_game)
+            # If image is missing (old games saved before image column), re-fetch to populate it
+            if not board_game.image:
+                game_data = caller.get_text(full_url)
+                board_game = BoardGame(game_data, full_url)
+                save_game(board_game)
+            else:
+                save_game(board_game)
         else:
             game_data = caller.get_text(full_url)
             try:

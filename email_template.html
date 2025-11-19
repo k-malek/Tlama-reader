@@ -27,6 +27,10 @@
             background-color: #f5f5f5;
             line-height: 1.6;
         }
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
         .email-container {
             max-width: 600px;
             margin: 0 auto;
@@ -202,6 +206,39 @@
             font-size: 14px;
             margin-top: 10px;
         }
+        .complexity-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .complexity-indicator > span:first-child {
+            margin-right: 6px;
+            padding-right: 6px;
+        }
+        .complexity-indicator > span:last-child {
+            padding-left: 0;
+        }
+        .complexity-easy {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .complexity-normal {
+            background-color: #fff3e0;
+            color: #e65100;
+        }
+        .complexity-difficult {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .complexity-value {
+            font-weight: 700;
+            font-size: 18px;
+            margin-right: 8px;
+        }
         @media only screen and (max-width: 600px) {
             .game-details {
                 grid-template-columns: 1fr;
@@ -253,7 +290,7 @@
                 {% if game.min_players and game.max_players %}
                 <div class="detail-item">
                     <div class="detail-label">Players</div>
-                    <div class="detail-value">{{ game.min_players }}-{{ game.max_players }}</div>
+                    <div class="detail-value">{{ game.min_players }} - {{ game.max_players }}</div>
                 </div>
                 {% endif %}
 
@@ -271,20 +308,30 @@
                 </div>
                 {% endif %}
 
-                {% if game.bgg_rating %}
-                <div class="detail-item">
-                    <div class="detail-label">BGG Rating</div>
-                    <div class="detail-value">{{ game.bgg_rating | round: 1 }}/10</div>
-                </div>
-                {% endif %}
-
                 {% if game.complexity %}
                 <div class="detail-item">
                     <div class="detail-label">Complexity</div>
-                    <div class="detail-value">{{ game.complexity }}/5</div>
+                    <div class="detail-value">
+                        <span class="complexity-value">{{ game.complexity }} / 5</span>
+                        {% assign complexity = game.complexity | plus: 0 %}
+                        {% if complexity < 2.5 %}
+                            <span class="complexity-indicator complexity-easy"><span>🟢</span>&nbsp;<span>Simple</span></span>
+                        {% elsif complexity >= 2.5 and complexity <= 3.5 %}
+                            <span class="complexity-indicator complexity-normal"><span>🟡</span>&nbsp;<span>Normal</span></span>
+                        {% else %}
+                            <span class="complexity-indicator complexity-difficult"><span>🔴</span>&nbsp;<span>Complex</span></span>
+                        {% endif %}
+                    </div>
                 </div>
                 {% endif %}
             </div>
+
+            {% if game.bgg_rating %}
+            <div class="rating-section">
+                <div class="rating-label">BoardGameGeek Rating</div>
+                <div class="rating-value">⭐ {{ game.bgg_rating }} / 10</div>
+            </div>
+            {% endif %}
 
             {% if game.game_categories %}
             <div class="categories-section">
