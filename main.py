@@ -17,7 +17,7 @@ def main():
     # print(board_game.to_json())
     caller.close()
 
-    if promo_game.my_rating > 100:
+    if promo_game.my_rating > 140:
         send_custom_event(promo_game.to_json())
 
 if __name__ == "__main__":

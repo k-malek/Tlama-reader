@@ -1,14 +1,68 @@
 # Tlama Reader
 
-A project for calling Tlama games.
+An automated tool for monitoring and analyzing board games from [Tlama Games](https://www.tlamagames.com), a Czech board game retailer. The tool checks for daily promo games, searches and rates games based on customizable preferences, and sends notifications when high-rated games are found.
 
-## Website Caller Utility
+## Features
 
-A simple utility class for making HTTP requests to websites by URL.
+### 🎯 Promo Game Monitoring
+- Automatically fetches the current promo game from Tlama Games homepage
+- Rates games based on your preferences (price, categories, mechanics, BGG rating, etc.)
+- Stores game data in a local SQLite database
+- Sends OneSignal notifications when promo games exceed your rating threshold (default: 140)
 
-### Installation
+### 🔍 Game Search & Filtering
+- Search games with customizable filters (price range, categories, mechanics, difficulty, etc.)
+- Filter by availability, game type, player count, play time, and more
+- Rate and sort results by your personal preferences
+- Supports category and mechanic filtering (e.g., `cat:card_game`, `mech:solo`)
 
-#### Using pip
+### 📊 Intelligent Rating System
+Games are automatically rated based on:
+- **Price**: Lower prices get higher ratings
+- **Distributor**: Preferences for specific publishers (e.g., Mindok bonus, Asmodee penalty)
+- **Game Type**: Base games preferred over expansions
+- **Player Count**: Solo games get bonus points
+- **BGG Rating**: Higher BoardGameGeek ratings increase score
+- **Play Time**: Optimal range preferred (30-120 minutes)
+- **Categories**: Customizable favorite categories (e.g., dice games, card games)
+- **Mechanics**: Preferred mechanics boost rating (e.g., solo, cooperative, dice rolling)
+
+### 💾 Database Storage
+- SQLite database (`games.db`) stores all game information
+- Caches game data to avoid redundant web requests
+- Automatically updates ratings when preferences change
+
+### 🔔 OneSignal Integration
+- Sends custom events to OneSignal when high-rated promo games are found
+- Configurable rating threshold for notifications
+- Includes full game data (name, price, rating, image, URL) in notifications
+
+## Installation
+
+### Using uv (Recommended)
+
+**Sync the project** (creates virtual environment and installs dependencies):
+
+```bash
+uv sync
+```
+
+This will create a virtual environment at `.venv` and install all dependencies automatically.
+
+**Run the script:**
+
+```bash
+uv run python main.py
+```
+
+**Or activate the virtual environment:**
+
+```bash
+source .venv/bin/activate  # On macOS/Linux
+python main.py
+```
+
+### Using pip
 
 ```bash
 pip install -e .
@@ -20,80 +74,104 @@ Or install dependencies only:
 pip install .
 ```
 
-#### Using uv
+## Usage
 
-**Recommended:** Sync the project (creates virtual environment and installs dependencies):
-
-```bash
-uv sync
-```
-
-This will create a virtual environment at `.venv` and install all dependencies automatically.
-
-Run scripts directly with uv:
-
-```bash
-uv run python main.py
-```
-
-Or activate the virtual environment and use Python normally:
-
-```bash
-source .venv/bin/activate  # On macOS/Linux
-python main.py
-```
-
-**Alternative:** Install in editable mode (requires venv first):
-
-```bash
-uv venv  # Create venv first
-uv pip install -e .
-```
-
-### Usage
+### Basic Usage - Check Promo Game
 
 ```python
 from website_caller import WebsiteCaller
+from utils.promo import get_promo_game
 
-# Create a caller instance
-caller = WebsiteCaller(timeout=10)
+caller = WebsiteCaller(timeout=30, use_browser=True)
+promo_game = get_promo_game(caller)
+print(promo_game.get_data_row())  # Name | Price | Rating | URL
 
-# Simple GET request
-response = caller.get("https://example.com")
-print(response.status_code)
-print(response.text)
+caller.close()
 
-# GET with query parameters
-response = caller.get("https://api.example.com/data", params={"key": "value"})
+# Send notification if rating is high enough
+if promo_game.my_rating > 140:
+    from integrations.onesignal_caller import send_custom_event
+    send_custom_event(promo_game.to_json())
+```
 
-# GET JSON response
-data = caller.get_json("https://api.example.com/json")
+### Search Games with Filters
 
-# GET text response
-text = caller.get_text("https://example.com")
+```python
+from website_caller import WebsiteCaller
+from utils.search import search_for_game, present_results
 
-# POST request with JSON
-response = caller.post("https://api.example.com/endpoint", json={"name": "value"})
+caller = WebsiteCaller(timeout=30, use_browser=True)
 
-# POST request with form data
-response = caller.post("https://api.example.com/endpoint", data={"field": "value"})
+# Search for games matching your criteria
+games = search_for_game(
+    caller,
+    filters=["amazing", "cheap", "cat:card_game", "mech:solo"],
+    pages=5  # Number of pages to search
+)
 
-# Custom headers
-response = caller.get("https://example.com", headers={"User-Agent": "MyApp/1.0"})
+# Display results sorted by rating
+present_results(games)
 
-# Generic call method
-response = caller.call("https://example.com", method="GET")
-
-# Clean up
 caller.close()
 ```
 
-### Example
+### Available Filters
 
-Run the example script:
+See `config.py` for all available filters. Examples:
+- `"available"` - Only in-stock games
+- `"discounted"` - Games on sale
+- `"cheap"` - Price range 1-1200 Kč
+- `"amazing"` - Highly rated games
+- `"cat:card_game"` - Card game category
+- `"mech:solo"` - Solo/cooperative mechanics
 
-```bash
-python example.py
+### Customize Preferences
+
+Edit `config.py` to customize your game preferences:
+
+```python
+FAVORITES = {
+    "categories": {
+        "very_valuable": ["Kostkové"],  # Dice games
+        "valuable": ["Karetní", "Dobrodružné", ...],
+        "unwanted": ["Horror"]
+    },
+    "mechanics": {
+        "very_valuable": ["Solo / Solitaire Game", "Cooperative Game", ...],
+        "valuable": ["Hand Management", "Tile Placement", ...],
+        "unwanted": ["Real-Time"]
+    }
+}
+```
+
+## Components
+
+### WebsiteCaller
+A utility component for making HTTP requests and browser automation. Used internally by the Tlama Reader for fetching game data.
+
+**Features:**
+- Standard HTTP requests (GET, POST, etc.)
+- Browser automation with Playwright for JavaScript-heavy pages
+- Session management and connection pooling
+- Automatic URL validation
+
+**Example:**
+```python
+from website_caller import WebsiteCaller
+
+caller = WebsiteCaller(timeout=30, use_browser=True)
+
+# Simple GET request
+response = caller.get("https://example.com")
+
+# Get HTML after JavaScript execution
+html = caller.get_html_with_browser(
+    url="https://example.com",
+    wait_for_selector="#content",
+    wait_until="networkidle"
+)
+
+caller.close()
 ```
 
 ## GitHub Actions Setup
@@ -108,7 +186,7 @@ This project includes a GitHub Actions workflow that runs daily at 6:30 AM UTC+1
    - Go to your repository → Settings → Secrets and variables → Actions
    - Add the following secrets:
      - `ONESIGNAL_API_KEY` - Your OneSignal REST API key
-     - `ONESIGNAL_ORGANIZATION_API_KEY` - Your OneSignal Organization API key
+     - `ONESIGNAL_ORGANIZATION_API_KEY` - Your OneSignal Organization API key (optional, for some endpoints)
      - `ONESIGNAL_APP_ID` - Your OneSignal App ID
 
 3. **The workflow will automatically run**:
@@ -117,11 +195,11 @@ This project includes a GitHub Actions workflow that runs daily at 6:30 AM UTC+1
 
 ### Workflow Details
 
-The workflow (`/.github/workflows/daily-run.yml`):
+The workflow (`.github/workflows/daily-run.yml`):
 - Installs Python 3.11+ and dependencies using `uv`
 - Installs Playwright browsers (Chromium)
 - Runs `main.py` which checks for promo games
-- If a game has a rating > 100, it sends a custom event to OneSignal
+- If a game has a rating > 140, it sends a custom event to OneSignal
 - Optionally uploads the database as an artifact for debugging (retained for 7 days)
 
 ### Viewing Workflow Runs
@@ -129,3 +207,56 @@ The workflow (`/.github/workflows/daily-run.yml`):
 - Go to the "Actions" tab in your GitHub repository
 - Click on "Daily Promo Game Check" to see run history
 - Click on any run to see logs and debug issues
+
+## Configuration
+
+### Environment Variables
+
+Create a `.env` file for OneSignal configuration:
+
+```env
+ONESIGNAL_API_KEY=your_rest_api_key
+ONESIGNAL_ORGANIZATION_API_KEY=your_org_api_key
+ONESIGNAL_APP_ID=your_app_id
+```
+
+### Rating Threshold
+
+Edit `main.py` to change the notification threshold:
+
+```python
+if promo_game.my_rating > 140:  # Change this value
+    send_custom_event(promo_game.to_json())
+```
+
+## Project Structure
+
+```
+.
+├── main.py                 # Main entry point
+├── website_caller.py       # HTTP/browser utility component
+├── config.py              # Configuration (filters, preferences)
+├── database.py            # SQLite database operations
+├── model/
+│   └── board_game.py      # BoardGame data model and rating logic
+├── utils/
+│   ├── promo.py           # Promo game fetching
+│   └── search.py          # Game search functionality
+├── integrations/
+│   └── onesignal_caller.py # OneSignal notification integration
+└── games.db               # SQLite database (created automatically)
+```
+
+## Requirements
+
+- Python 3.11+
+- Playwright (for browser automation)
+- BeautifulSoup4 (for HTML parsing)
+- requests (for HTTP requests)
+- onesignal-sdk-python (for notifications)
+
+All dependencies are specified in `pyproject.toml` and will be installed automatically with `uv sync`.
+
+## License
+
+This project is for personal use to monitor Tlama Games promotions.
