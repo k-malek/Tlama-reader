@@ -37,5 +37,7 @@ jobs:
         env:
           ONESIGNAL_API_KEY: ${{ secrets.ONESIGNAL_API_KEY }}
           ONESIGNAL_APP_ID: ${{ secrets.ONESIGNAL_APP_ID }}
+          MY_USER_EXTERNAL_ID: ${{ secrets.MY_USER_EXTERNAL_ID }}
+          MY_USER_ONESIGNAL_ID: ${{ secrets.MY_USER_ONESIGNAL_ID }}
         run: |
           uv run python main.py
