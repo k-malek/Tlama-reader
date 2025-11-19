@@ -46,8 +46,8 @@ def send_custom_event(game_json: dict) -> dict:
             events=[
                 CustomEvent(
                     name="game_data",
-                    external_id="EmailTest",
-                    onesignal_id="4168ff92-5bb1-48ce-8484-fa9f67627f5e",
+                    external_id=os.getenv("MY_USER_EXTERNAL_ID"),
+                    onesignal_id=os.getenv("MY_USER_ONESIGNAL_ID"),
                     timestamp=datetime.now(timezone.utc),
                     payload=game_json,
                 ),

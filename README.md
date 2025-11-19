@@ -184,10 +184,12 @@ This project includes a GitHub Actions workflow that runs daily at 6:30 AM UTC+1
 
 2. **Add GitHub Secrets**:
    - Go to your repository → Settings → Secrets and variables → Actions
-   - Add the following secrets:
+   - Add the following secrets (see OneSignal Setup section for how to get these):
      - `ONESIGNAL_API_KEY` - Your OneSignal REST API key
      - `ONESIGNAL_ORGANIZATION_API_KEY` - Your OneSignal Organization API key (optional, for some endpoints)
      - `ONESIGNAL_APP_ID` - Your OneSignal App ID
+     - `MY_USER_EXTERNAL_ID` - Your user's External ID (for custom events)
+     - `MY_USER_ONESIGNAL_ID` - Your user's OneSignal ID (for custom events)
 
 3. **The workflow will automatically run**:
    - Daily at 6:30 AM UTC+1 (5:30 AM UTC)
@@ -210,15 +212,91 @@ The workflow (`.github/workflows/daily-run.yml`):
 
 ## Configuration
 
-### Environment Variables
+### OneSignal Setup
 
-Create a `.env` file for OneSignal configuration:
+OneSignal is used to send push notifications and emails when high-rated promo games are found. Follow these steps to set up OneSignal:
+
+#### 1. Create OneSignal Account and App
+
+1. **Sign up for OneSignal** (free tier is sufficient): https://onesignal.com/
+2. **Create a new app** in your OneSignal dashboard
+   - Go to Dashboard → New App/Website
+   - Choose a platform (Web Push, Email, or both)
+   - Complete the setup wizard
+
+#### 2. Get API Keys and App ID
+
+1. **REST API Key**:
+   - Go to Settings → Keys & IDs
+   - Copy the **REST API Key** (this is your `ONESIGNAL_API_KEY`)
+
+2. **Organization API Key** (optional but recommended):
+   - Go to Settings → Account
+   - Copy the **Organization API Key** (this is your `ONESIGNAL_ORGANIZATION_API_KEY`)
+
+3. **App ID**:
+   - Go to Settings → Keys & IDs
+   - Copy the **App ID** (this is your `ONESIGNAL_APP_ID`)
+
+#### 3. Create Push/Email Template
+
+1. **Go to Messages → Templates** in your OneSignal dashboard
+2. **Create a new template**:
+   - Click "New Template"
+   - Choose Email or Push Notification (or both)
+   - Copy the content from `email_template.html` in this repository
+   - The template uses Liquid syntax to display game data:
+     - `{{ game.name }}` - Game name
+     - `{{ game.final_price }}` - Price in Kč
+     - `{{ game.my_rating }}` - Your custom rating
+     - `{{ game.url }}` - Link to game page
+     - And more game details (categories, mechanics, BGG rating, etc.)
+3. **Save the template** and note the Template ID (you may need it later)
+
+#### 4. Create Custom Event Journey
+
+1. **Go to Journeys** in your OneSignal dashboard
+2. **Create a new Journey**:
+   - Click "New Journey"
+   - Choose "Custom Event" as the trigger
+   - Set the event name to: `game_data` (this must match exactly)
+   - Add your template as an action (Email or Push Notification)
+   - Configure any additional conditions or delays
+   - Save and activate the journey
+
+#### 5. Get User Identification (for Custom Events)
+
+The custom event needs to identify which user to send the notification to:
+
+1. **Go to Audience → All Users** in your OneSignal dashboard
+2. **Select a user** (or create a test user)
+3. **Copy the following values**:
+   - **External ID** (this is your `MY_USER_EXTERNAL_ID`)
+   - **OneSignal ID** (this is your `MY_USER_ONESIGNAL_ID`)
+
+   Note: If you don't have a user yet, you can create one by:
+   - Adding a subscriber to your app (via web push subscription or email subscription)
+   - Or using the OneSignal API to create a user
+
+#### 6. Set Up Environment Variables
+
+Create a `.env` file in the project root with the following variables:
 
 ```env
-ONESIGNAL_API_KEY=your_rest_api_key
-ONESIGNAL_ORGANIZATION_API_KEY=your_org_api_key
-ONESIGNAL_APP_ID=your_app_id
+# OneSignal Configuration
+ONESIGNAL_API_KEY=your_rest_api_key_here
+ONESIGNAL_ORGANIZATION_API_KEY=your_organization_api_key_here
+ONESIGNAL_APP_ID=your_app_id_here
+
+# User Identification (required for custom events)
+MY_USER_EXTERNAL_ID=your_external_id_here
+MY_USER_ONESIGNAL_ID=your_onesignal_id_here
 ```
+
+**Important**:
+- Replace all placeholder values with your actual OneSignal credentials
+- Never commit the `.env` file to version control (it's already in `.gitignore`)
+- For GitHub Actions, add these as secrets (see GitHub Actions Setup section)
 
 ### Rating Threshold
 
@@ -228,6 +306,27 @@ Edit `main.py` to change the notification threshold:
 if promo_game.my_rating > 140:  # Change this value
     send_custom_event(promo_game.to_json())
 ```
+
+### Testing OneSignal Integration
+
+To test if everything is set up correctly:
+
+```python
+from integrations.onesignal_caller import send_custom_event
+
+# Test with sample game data
+test_game = {
+    "name": "Test Game",
+    "final_price": "999",
+    "my_rating": 200,
+    "url": "https://www.tlamagames.com/test",
+    # ... other game fields
+}
+
+send_custom_event(test_game)
+```
+
+Check your OneSignal dashboard → Events to see if the custom event was received, and verify that your journey triggered correctly.
 
 ## Project Structure
 

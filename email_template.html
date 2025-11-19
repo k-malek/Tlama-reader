@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% assign event = journey.last_event %}
     {% assign game = event.data %}
-    {% if game.my_rating > 250 %}
+    {% if game.my_rating >= 230 %}
         {% assign rating_text = "Outstanding" %}
         {% assign rating_emoji = "⭐" %}
         {% assign badge_class = "badge-outstanding" %}
-    {% elsif game.my_rating > 200 %}
+    {% elsif game.my_rating >= 180 %}
         {% assign rating_text = "Great" %}
         {% assign rating_emoji = "🌟" %}
         {% assign badge_class = "badge-great" %}
-    {% elsif game.my_rating > 100 %}
+    {% elsif game.my_rating >= 140 %}
         {% assign rating_text = "Nice" %}
         {% assign rating_emoji = "✨" %}
         {% assign badge_class = "badge-nice" %}
@@ -285,13 +285,6 @@
                 </div>
                 {% endif %}
             </div>
-
-            {% if game.bgg_rating %}
-            <div class="rating-section">
-                <div class="rating-label">BoardGameGeek Rating</div>
-                <div class="rating-value">⭐ {{ game.bgg_rating | round: 1 }}/10</div>
-            </div>
-            {% endif %}
 
             {% if game.game_categories %}
             <div class="categories-section">
