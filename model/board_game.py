@@ -176,13 +176,26 @@ class BoardGame:
             if not key or not value:
                 continue
             
+            # Store original value in parameters
+            original_value = value
+
+            # Special handling for play_time_minutes: extract last range if comma-separated
+            if key == '7. Herní doba (minut)' and ',' in value and '-' in value:
+                # Extract the last range from comma-separated values
+                comma_parts = [p.strip() for p in value.split(',')]
+                # Find the last part that contains a hyphen (the last range)
+                for part in reversed(comma_parts):
+                    if '-' in part:
+                        value = part.strip()
+                        break
+
             # Parse comma-separated values
             if "," in value:
                 value = [v.strip() for v in value.split(",")]
             else:
                 value = value
             
-            self.parameters[key] = value
+            self.parameters[key] = original_value
             
             # Map to attributes
             attr_name = self.PARAMETER_MAPPING.get(key)
@@ -195,7 +208,39 @@ class BoardGame:
         return f"{self.name} | {self.final_price} Kč | {self.my_rating} | {self.url}"
 
     def print_all_info(self):
-        print(self.name, self.final_price+" Kč", self.distributor, self.category, self.weight_kg, self.ean, self.game_type, self.min_age, self.game_language, self.rules_language, self.min_players, self.max_players, self.play_time_minutes, self.bgg_rating, self.complexity, self.author, self.game_categories, self.game_mechanics, self.year_published, self.artists)
+        """Print board game information in a nice table format."""
+        # Define fields to display with their labels
+        fields = [
+            ('Name', self.name),
+            ('Price', f"{self.final_price} Kč" if self.final_price else None),
+            ('Rating', self.my_rating),
+            ('Distributor', self.distributor),
+            ('Category', self.category),
+            ('Game Type', self.game_type),
+            ('Author', self.author),
+            ('Year Published', self.year_published),
+            ('Min Age', self.min_age),
+            ('Players', f"{self.min_players}-{self.max_players}" if self.min_players and self.max_players else (self.min_players or self.max_players)),
+            ('Play Time', f"{self.play_time_minutes} min" if self.play_time_minutes else None),
+            ('BGG Rating', f"{self.bgg_rating:.1f}" if self.bgg_rating else None),
+            ('Complexity', f"{self.complexity:.1f}" if self.complexity else None),
+            ('Weight', f"{self.weight_kg} kg" if self.weight_kg else None),
+            ('EAN', self.ean),
+            ('Game Language', self.game_language),
+            ('Rules Language', ', '.join(self.rules_language) if isinstance(self.rules_language, list) else self.rules_language),
+            ('Categories', ', '.join(self.game_categories) if isinstance(self.game_categories, list) else self.game_categories),
+            ('Mechanics', ', '.join(self.game_mechanics) if isinstance(self.game_mechanics, list) else self.game_mechanics),
+            ('Artists', ', '.join(self.artists) if isinstance(self.artists, list) else self.artists),
+        ]
+
+        # Filter out None values and format as table
+        max_label_width = max(len(label) for label, _ in fields)
+
+        print("\n" + "=" * 60)
+        for label, value in fields:
+            if value is not None:
+                print(f"{label:<{max_label_width}} : {value}")
+        print("=" * 60 + "\n")
 
     def rate(self):
         self.my_rating = 0
@@ -225,13 +270,6 @@ class BoardGame:
             self.my_rating += 10
         elif self.distributor == 'Asmodee Czech Republic':
             self.my_rating -= 10000
-            return self.my_rating
-
-        # Základní hra / rozšíření
-        if self.game_type == 'Základní hra':
-            self.my_rating += 10
-        elif self.game_type == 'Rozšíření':
-            self.my_rating -= 10
             return self.my_rating
 
         # Min players
