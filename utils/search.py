@@ -2,7 +2,7 @@ from website_caller import WebsiteCaller
 from bs4 import BeautifulSoup
 from config import BASE_URL, ENDPOINTS, FILTERS
 from model.board_game import BoardGame
-from database import game_exists, load_game, save_game
+from database import game_exists, save_game
 
 def search_for_game(caller: WebsiteCaller, filters: list = None, pages: int = 1000, endpoint: str = "shop") -> list:
     games_urls = []
@@ -45,14 +45,14 @@ def games_standings(games_urls: list, caller: WebsiteCaller):
         print(full_url)
 
         if game_exists(full_url):
-            board_game = load_game(full_url)
-            # If image is missing (old games saved before image column), re-fetch to populate it
-            if not board_game.image:
-                game_data = caller.get_text(full_url)
+            # Always re-fetch game data to get latest price and other updated information
+            game_data = caller.get_text(full_url)
+            try:
                 board_game = BoardGame(game_data, full_url)
-                save_game(board_game)
-            else:
-                save_game(board_game)
+            except ValueError as e:
+                print(f"Error parsing game data: {e}")
+                continue
+            save_game(board_game)
         else:
             game_data = caller.get_text(full_url)
             try:

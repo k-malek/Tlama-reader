@@ -4,6 +4,7 @@ BASE_URL = "https://www.tlamagames.com"
 
 ENDPOINTS = {
     "shop": "/deskove-hry/",
+    "promo": "/blue-friday/",
     "game": "/{game_url}",
 }
 
