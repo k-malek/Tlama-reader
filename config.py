@@ -39,6 +39,20 @@ FILTERS = {
     "modular_board":"13875"
 }
 
+# Metadata to identify which filters are categories and which are mechanics
+# These lists contain the filter keys that should be prefixed with "cat:" or "mech:" in searches
+CATEGORY_FILTERS = ["card_game", "adventure", "dice_game", "logic_game", "animals"]
+MECHANIC_FILTERS = ["solo", "cooperative", "dice_rolling", "modular_board"]
+
+# Filter groups for UI organization
+FILTER_GROUPS = {
+    "Price": ["discounted","very_cheap", "cheap", "normal_price", "expensive", "very_expensive"],
+    "Difficulty": ["simple", "medium", "complex"],
+    "Quality": ["good", "amazing"],
+    "Players": ["for_one_player"],
+    "Language": ["no_language_required", "game_in_polish", "english_rulebook"],
+}
+
 FAVORITES = {
     "categories": {
         "very_valuable": ["Kostkové"],

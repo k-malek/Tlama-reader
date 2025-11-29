@@ -3,6 +3,7 @@ from utils.promo import get_promo_game # type: ignore
 from utils.search import search_for_game, present_results # type: ignore
 from integrations.onesignal_caller import send_custom_event
 from model.board_game import BoardGame
+from ui.interface import run_interface
 import logging
 import sys
 
@@ -60,9 +61,11 @@ if __name__ == "__main__":
             run_search_check(filters=filters)
         elif command == "game" and len(sys.argv) > 2:
             run_game_check(sys.argv[2])
+        elif command == "interface":
+            run_interface()
         else:
             logger.error(f"Unknown command: {command}")
-            logger.info("Available commands: promo, best-deals, search, game")
+            logger.info("Available commands: promo, best-deals, search, game, interface")
     else:
         # Default behavior for backward compatibility
         run_best_deals_check()
