@@ -5,10 +5,12 @@ An automated tool for monitoring and analyzing board games from [Tlama Games](ht
 ## Features
 
 ### 🎯 Promo Game Monitoring
-- Automatically fetches the current promo game from Tlama Games homepage
+- **Daily Promo Check**: Automatically fetches the current promo game from Tlama Games homepage
+- **Weekly Best Deals**: Finds the best discounted deals every week
 - Rates games based on your preferences (price, categories, mechanics, BGG rating, etc.)
 - Stores game data in a local SQLite database
-- Sends OneSignal notifications when promo games exceed your rating threshold (default: 140)
+- Sends OneSignal notifications when games exceed your rating threshold (default: 140)
+- Weekly deals are highlighted with special styling in email notifications
 
 ### 🔍 Game Search & Filtering
 - Search games with customizable filters (price range, categories, mechanics, difficulty, etc.)
@@ -52,14 +54,24 @@ This will create a virtual environment at `.venv` and install all dependencies a
 **Run the script:**
 
 ```bash
-uv run python main.py
+# Run promo check (daily deals)
+uv run python main.py promo
+
+# Run best deals check (weekly deals)
+uv run python main.py best-deals
+
+# Search games
+uv run python main.py search
+
+# Check specific game
+uv run python main.py game <url>
 ```
 
 **Or activate the virtual environment:**
 
 ```bash
 source .venv/bin/activate  # On macOS/Linux
-python main.py
+python main.py promo
 ```
 
 ### Using pip
@@ -78,6 +90,12 @@ pip install .
 
 ### Basic Usage - Check Promo Game
 
+**Using command line:**
+```bash
+uv run python main.py promo
+```
+
+**Using Python:**
 ```python
 from website_caller import WebsiteCaller
 from utils.promo import get_promo_game
@@ -94,8 +112,39 @@ if promo_game.my_rating > 140:
     send_custom_event(promo_game.to_json())
 ```
 
+### Check Best Deals (Weekly)
+
+**Using command line:**
+```bash
+uv run python main.py best-deals
+```
+
+**Using Python:**
+```python
+from website_caller import WebsiteCaller
+from utils.search import search_for_game
+from integrations.onesignal_caller import send_custom_event
+
+caller = WebsiteCaller(timeout=30, use_browser=True)
+games = search_for_game(caller, filters=["discounted"])
+best_deal_game = games[0]
+best_deal_game.deal = "weekly"  # Mark as weekly deal
+send_custom_event(best_deal_game.to_json())
+caller.close()
+```
+
 ### Search Games with Filters
 
+**Using command line:**
+```bash
+# Search without filters
+uv run python main.py search
+
+# Search with filters (pass filters as additional arguments)
+uv run python main.py search amazing cheap cat:card_game mech:solo
+```
+
+**Using Python:**
 ```python
 from website_caller import WebsiteCaller
 from utils.search import search_for_game, present_results
@@ -176,7 +225,7 @@ caller.close()
 
 ## GitHub Actions Setup
 
-This project includes a GitHub Actions workflow that runs daily at 6:30 AM UTC+1 to check for promo games and send notifications via OneSignal.
+This project includes two GitHub Actions workflows that automatically check for board game deals and send notifications via OneSignal.
 
 ### Setup Instructions
 
@@ -191,23 +240,32 @@ This project includes a GitHub Actions workflow that runs daily at 6:30 AM UTC+1
      - `MY_USER_EXTERNAL_ID` - Your user's External ID (for custom events)
      - `MY_USER_ONESIGNAL_ID` - Your user's OneSignal ID (for custom events)
 
-3. **The workflow will automatically run**:
-   - Daily at 6:30 AM UTC+1 (5:30 AM UTC)
-   - You can also manually trigger it from the Actions tab → "Daily Promo Game Check" → "Run workflow"
+3. **The workflows will automatically run**:
+   - **Daily Promo Check**: Runs daily at 6:30 AM UTC+1 (5:30 AM UTC) - checks for daily promo games
+   - **Weekly Best Deals Check**: Runs every Monday at 7:30 AM UTC+1 (6:30 AM UTC) - checks for weekly best deals
+   - You can also manually trigger either workflow from the Actions tab → Select workflow → "Run workflow"
 
 ### Workflow Details
 
-The workflow (`.github/workflows/daily-run.yml`):
-- Installs Python 3.11+ and dependencies using `uv`
-- Installs Playwright browsers (Chromium)
-- Runs `main.py` which checks for promo games
+#### Daily Promo Game Check (`.github/workflows/daily-run.yml`)
+- Runs `python main.py promo` to check for daily promo games
 - If a game has a rating > 140, it sends a custom event to OneSignal
-- Optionally uploads the database as an artifact for debugging (retained for 7 days)
+- Scheduled to run daily at 6:30 AM UTC+1
+
+#### Weekly Best Deals Check (`.github/workflows/weekly-run.yml`)
+- Runs `python main.py best-deals` to find the best discounted deals
+- Sets the `deal` parameter to "weekly" for special weekly deal styling in notifications
+- Scheduled to run every Monday at 7:30 AM UTC+1 (1 hour after daily check)
+
+Both workflows:
+- Install Python 3.11+ and dependencies using `uv`
+- Install Playwright browsers (Chromium)
+- Use the same OneSignal secrets for notifications
 
 ### Viewing Workflow Runs
 
 - Go to the "Actions" tab in your GitHub repository
-- Click on "Daily Promo Game Check" to see run history
+- Click on "Daily Promo Game Check" or "Weekly Best Deals Check" to see run history
 - Click on any run to see logs and debug issues
 
 ## Configuration
@@ -244,13 +302,15 @@ OneSignal is used to send push notifications and emails when high-rated promo ga
 2. **Create a new template**:
    - Click "New Template"
    - Choose Email or Push Notification (or both)
-   - Copy the content from `email_template.html` in this repository
+   - Copy the content from `templates/deal_template.html` in this repository
    - The template uses Liquid syntax to display game data:
      - `{{ game.name }}` - Game name
      - `{{ game.final_price }}` - Price in Kč
      - `{{ game.my_rating }}` - Your custom rating
+     - `{{ game.deal }}` - Deal type ("daily" or "weekly") - weekly deals get special styling
      - `{{ game.url }}` - Link to game page
      - And more game details (categories, mechanics, BGG rating, etc.)
+   - The template automatically applies special styling for weekly deals (orange theme, prominent badges)
 3. **Save the template** and note the Template ID (you may need it later)
 
 #### 4. Create Custom Event Journey
@@ -332,7 +392,7 @@ Check your OneSignal dashboard → Events to see if the custom event was receive
 
 ```
 .
-├── main.py                 # Main entry point
+├── main.py                 # Main entry point (supports: promo, best-deals, search, game)
 ├── website_caller.py       # HTTP/browser utility component
 ├── config.py              # Configuration (filters, preferences)
 ├── database.py            # SQLite database operations
@@ -343,6 +403,12 @@ Check your OneSignal dashboard → Events to see if the custom event was receive
 │   └── search.py          # Game search functionality
 ├── integrations/
 │   └── onesignal_caller.py # OneSignal notification integration
+├── templates/
+│   └── deal_template.html # Email template for deal notifications (supports daily/weekly styling)
+├── .github/
+│   └── workflows/
+│       ├── daily-run.yml  # Daily promo check workflow
+│       └── weekly-run.yml # Weekly best deals check workflow
 └── games.db               # SQLite database (created automatically)
 ```
 

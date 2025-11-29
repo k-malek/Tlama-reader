@@ -33,9 +33,10 @@ class BoardGame:
     # Fields that are always lists
     LIST_FIELDS = {'rules_language', 'game_categories', 'game_mechanics', 'artists'}
 
-    def __init__(self, html_page_data, url):
+    def __init__(self, html_page_data, url, deal='daily'):
         self.html_page_data = html_page_data
         self.url = url
+        self.deal = deal
         self.name = None
         self.final_price = None
         self.distributor = None
@@ -334,11 +335,8 @@ class BoardGame:
             'url': self.url,
             'name': self.name,
             'final_price': self.final_price,
-            'distributor': self.distributor,
             'game_type': self.game_type,
             'min_age': self.min_age,
-            'game_language': self.game_language,
-            'rules_language': self.rules_language,
             'min_players': self.min_players,
             'max_players': self.max_players,
             'play_time_minutes': self.play_time_minutes,
@@ -346,8 +344,7 @@ class BoardGame:
             'complexity': self.complexity,
             'game_categories': self.game_categories,
             'game_mechanics': self.game_mechanics,
-            'year_published': self.year_published,
-            'parameters': self.parameters,
             'my_rating': self.my_rating,
-            'image': self.image
+            'image': self.image,
+            'deal': self.deal
         }

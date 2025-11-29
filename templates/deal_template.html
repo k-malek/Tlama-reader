@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% assign event = journey.last_event %}
     {% assign game = event.data %}
+    {% if game.deal == "weekly" %}
+        {% assign is_weekly = true %}
+    {% else %}
+        {% assign is_weekly = false %}
+    {% endif %}
     {% if game.my_rating >= 230 %}
         {% assign rating_text = "Outstanding" %}
         {% assign rating_emoji = "⭐" %}
@@ -39,11 +44,36 @@
             margin: 0 auto;
             background-color: #ffffff;
         }
+        .email-container.weekly-deal {
+            box-shadow: 0 8px 24px rgba(255, 152, 0, 0.3);
+            border: 3px solid #FF9800;
+        }
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 30px 20px;
             text-align: center;
+        }
+        .header.weekly-header {
+            background: linear-gradient(135deg, #FF6B35 0%, #F7931E 50%, #FFD23F 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .header.weekly-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(255, 255, 255, 0.1) 10px,
+                rgba(255, 255, 255, 0.1) 20px
+            );
+            pointer-events: none;
         }
         .header h1 {
             margin: 0;
@@ -72,6 +102,26 @@
             background-color: #FF9800;
             color: white;
         }
+        .badge-weekly {
+            background-color: #FF5722;
+            color: white;
+            font-size: 16px;
+            padding: 12px 30px;
+            box-shadow: 0 4px 12px rgba(255, 87, 34, 0.4);
+            animation: pulse 2s ease-in-out infinite;
+            position: relative;
+            z-index: 1;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 4px 12px rgba(255, 87, 34, 0.4);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 6px 20px rgba(255, 87, 34, 0.6);
+            }
+        }
         .game-image {
             width: 100%;
             max-width: 100%;
@@ -95,6 +145,12 @@
             border-radius: 12px;
             text-align: center;
             margin: 25px 0;
+        }
+        .price-section.weekly-price {
+            background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+            border: 3px solid #FFD23F;
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+            padding: 30px;
         }
         .price-label {
             font-size: 14px;
@@ -183,6 +239,7 @@
         .cta-button {
             display: block;
             width: 100%;
+            box-sizing: border-box;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             text-align: center;
@@ -194,8 +251,17 @@
             margin: 30px 0;
             transition: transform 0.2s;
         }
+        .cta-button.weekly-cta {
+            background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+            font-size: 20px;
+            padding: 20px 30px;
+        }
         .cta-button:hover {
             transform: translateY(-2px);
+        }
+        .cta-button.weekly-cta:hover {
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.6);
         }
         .footer {
             background-color: #f8f9fa;
@@ -263,8 +329,11 @@
 </head>
 <body>
     <a href="[unsubscribe_url]">Unsubscribe</a>
-    <div class="email-container">
-        <div class="header">
+    <div class="email-container{% if is_weekly %} weekly-deal{% endif %}">
+        <div class="header{% if is_weekly %} weekly-header{% endif %}">
+            {% if is_weekly %}
+                <span class="badge badge-weekly">🔥 WEEKLY DEAL 🔥</span>
+            {% endif %}
             <h1>🎲 {{ rating_emoji | default: "🎲" }} {{ rating_text | default: "Special" }} Board Game Deal!</h1>
             {% if game.my_rating > 100 %}
                 <span class="badge {{ badge_class }}">{{ rating_emoji | default: "🎲" }} {{ rating_text | default: "Special" }}</span>
@@ -282,8 +351,8 @@
             <div class="distributor-info">by {{ game.distributor }}</div>
             {% endif %}
 
-            <div class="price-section">
-                <div class="price-label">Special Price</div>
+            <div class="price-section{% if is_weekly %} weekly-price{% endif %}">
+                <div class="price-label">{% if is_weekly %}🔥 Weekly Deal Price{% else %}Special Price{% endif %}</div>
                 <div class="price-value">
                     {{ game.final_price }}<span class="price-currency"> Kč</span>
                 </div>
@@ -362,7 +431,7 @@
             </div>
             {% endif %}
 
-            <a href="{{ game.url }}" class="cta-button">View Game Details →</a>
+            <a href="{{ game.url }}" class="cta-button{% if is_weekly %} weekly-cta{% endif %}">View Game Details →</a>
         </div>
 
         <div class="footer">

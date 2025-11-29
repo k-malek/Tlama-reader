@@ -4,6 +4,7 @@ from utils.search import search_for_game, present_results # type: ignore
 from integrations.onesignal_caller import send_custom_event
 from model.board_game import BoardGame
 import logging
+import sys
 
 logger = logging.getLogger(__name__)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -21,9 +22,18 @@ def run_promo_check():
         logger.error(f"Error getting promo game: {e}")
         return
     logger.info(promo_game.get_data_row())
-    caller.close()
     if promo_game.my_rating > 140:
         send_custom_event(promo_game.to_json())
+    caller.close()
+
+def run_best_deals_check():
+    caller = WebsiteCaller(timeout=30, use_browser=True)
+    games = search_for_game(caller, filters=["discounted"])
+    best_deal_game = games[0]
+    best_deal_game.deal = "weekly"
+    logger.info(best_deal_game.get_data_row())
+    send_custom_event(best_deal_game.to_json())
+    caller.close()
 
 def run_search_check(filters: list = None, endpoint: str = "shop"):
     caller = WebsiteCaller(timeout=30, use_browser=True)
@@ -39,5 +49,20 @@ def run_game_check(url: str):
     caller.close()
 
 if __name__ == "__main__":
-    run_promo_check()
-    #run_search_check(filters=["amazing"])
+    if len(sys.argv) > 1:
+        command = sys.argv[1]
+        if command == "promo":
+            run_promo_check()
+        elif command == "best-deals":
+            run_best_deals_check()
+        elif command == "search":
+            filters = sys.argv[2:] if len(sys.argv) > 2 else None
+            run_search_check(filters=filters)
+        elif command == "game" and len(sys.argv) > 2:
+            run_game_check(sys.argv[2])
+        else:
+            logger.error(f"Unknown command: {command}")
+            logger.info("Available commands: promo, best-deals, search, game")
+    else:
+        # Default behavior for backward compatibility
+        run_best_deals_check()
