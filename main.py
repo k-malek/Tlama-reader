@@ -30,6 +30,12 @@ def run_promo_check():
 def run_best_deals_check():
     caller = WebsiteCaller(timeout=30, use_browser=True)
     games = search_for_game(caller, filters=["discounted"])
+    # Filter out owned games
+    games = [game for game in games if not getattr(game, 'owned', False)]
+    if not games:
+        logger.info("No unowned discounted games found")
+        caller.close()
+        return
     best_deal_game = games[0]
     best_deal_game.deal = "weekly"
     logger.info(best_deal_game.get_data_row())
