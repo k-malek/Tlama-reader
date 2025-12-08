@@ -227,6 +227,11 @@ class TlamaCallerGUI(ctk.CTk):
         columns = ("Name", "Price", "Rating", "BGG", "Evil", "Owned", "Link")
         self.db_tree = ttk.Treeview(list_frame, columns=columns, show="headings", height=20)
         
+        # Configure style for larger font in checkbox columns
+        style = ttk.Style()
+        style.configure("Treeview", font=("TkDefaultFont", 16))
+        style.configure("Treeview.Heading", font=("TkDefaultFont", 10, "bold"))
+
         for col in columns:
             # Link column is not sortable
             if col == "Link":
@@ -239,8 +244,8 @@ class TlamaCallerGUI(ctk.CTk):
         self.db_tree.column("Price", width=100)
         self.db_tree.column("Rating", width=100)
         self.db_tree.column("BGG", width=80)
-        self.db_tree.column("Evil", width=60)
-        self.db_tree.column("Owned", width=70)
+        self.db_tree.column("Evil", width=60, anchor="center")
+        self.db_tree.column("Owned", width=70, anchor="center")
         self.db_tree.column("Link", width=100)
         
         scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=self.db_tree.yview)
@@ -587,8 +592,8 @@ class TlamaCallerGUI(ctk.CTk):
                 f"{game.final_price} Kč" if game.final_price else "N/A",
                 f"{game.my_rating:.1f}" if game.my_rating else "N/A",
                 f"{game.bgg_rating:.1f}" if game.bgg_rating else "N/A",
-                "☑" if getattr(game, 'has_demonic_vibe', False) else "☐",
-                "☑" if getattr(game, 'owned', False) else "☐",
+                "■" if getattr(game, 'has_demonic_vibe', False) else "□",
+                "■" if getattr(game, 'owned', False) else "□",
                 "🔗 Open" if game.url else "N/A"
             ), tags=(game.url,))
     
@@ -917,7 +922,7 @@ class TlamaCallerGUI(ctk.CTk):
             if column == "#5":  # Evil column
                 # Toggle has_demonic_vibe - get current value from tree, don't reload game
                 item_values = self.db_tree.item(item)['values']
-                current_value = item_values[4] == "☑"  # Evil is 5th column (index 4)
+                current_value = item_values[4] == "■"  # Evil is 5th column (index 4)
                 new_value = not current_value
                 update_game_boolean(url, 'has_demonic_vibe', new_value)
                 # Update the game object in our stored list
@@ -928,7 +933,7 @@ class TlamaCallerGUI(ctk.CTk):
             elif column == "#6":  # Owned column
                 # Toggle owned - get current value from tree, don't reload game
                 item_values = self.db_tree.item(item)['values']
-                current_value = item_values[5] == "☑"  # Owned is 6th column (index 5)
+                current_value = item_values[5] == "■"  # Owned is 6th column (index 5)
                 new_value = not current_value
                 update_game_boolean(url, 'owned', new_value)
                 # Update the game object in our stored list
