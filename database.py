@@ -140,9 +140,7 @@ def load_game(url: str) -> Optional[BoardGame]:
         conn.close()
         return None
 
-    board_game = BoardGame.__new__(BoardGame)
-    board_game.url = row['url']
-    board_game.html_page_data = None
+    board_game = BoardGame(html_page_data=None, url=row['url'], skip_html_parsing=True)
     board_game.parameters = {}
     board_game.my_rating = 0
 
@@ -268,9 +266,7 @@ def search_games_in_db(name: Optional[str] = None, min_rating: Optional[float] =
 def _row_to_board_game(row) -> Optional[BoardGame]:
     """Convert a database row to a BoardGame instance."""
     try:
-        board_game = BoardGame.__new__(BoardGame)
-        board_game.url = row['url']
-        board_game.html_page_data = None
+        board_game = BoardGame(html_page_data=None, url=row['url'], skip_html_parsing=True)
         board_game.parameters = {}
         board_game.my_rating = 0
 

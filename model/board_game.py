@@ -33,7 +33,7 @@ class BoardGame:
     # Fields that are always lists
     LIST_FIELDS = {'rules_language', 'game_categories', 'game_mechanics', 'artists'}
 
-    def __init__(self, html_page_data, url, deal='daily'):
+    def __init__(self, html_page_data=None, url=None, deal='daily', skip_html_parsing=False):
         self.html_page_data = html_page_data
         self.url = url
         self.deal = deal
@@ -60,8 +60,9 @@ class BoardGame:
         self.has_demonic_vibe = 0
         self.image = None
         self.parameters = {}
-        self.from_html(html_page_data)
-        self.rate()
+        if not skip_html_parsing and html_page_data:
+            self.from_html(html_page_data)
+            self.rate()
 
     def _parse_value(self, key, value):
         """Parse and convert value based on field type."""
