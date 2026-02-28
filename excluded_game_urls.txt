@@ -1,0 +1,19 @@
+# Excluded game URLs - never send notifications for these games
+# One URL per line. Add via: uv run python main.py export-excluded
+# Or edit manually. Used by CI and local runs.
+
+https://www.tlamagames.com/deskove-hry/agemonia-en/
+https://www.tlamagames.com/deskove-hry/bily-hrad/
+https://www.tlamagames.com/deskove-hry/carokniha-promo-2/
+https://www.tlamagames.com/deskove-hry/carokniha/
+https://www.tlamagames.com/deskove-hry/forest-of-radgost--acorn-pledge-en/
+https://www.tlamagames.com/deskove-hry/forest-of-radgost--divine-pledge-en/
+https://www.tlamagames.com/deskove-hry/harry-potter--vzestup-smrtijedu-sada-4-promo-karet-2/
+https://www.tlamagames.com/deskove-hry/mage-knight--ultimatni-edice/
+https://www.tlamagames.com/deskove-hry/mala-velka-podzemi/
+https://www.tlamagames.com/deskove-hry/pisk-o-rky--draci-vs-jednorozci/
+https://www.tlamagames.com/deskove-hry/prival-temnoty--plameny-pekelne/
+https://www.tlamagames.com/deskove-hry/the-white-castle/
+https://www.tlamagames.com/games-workshop/warhammer-underworlds--wintermaw/
+https://www.tlamagames.com/rpg/pouto-carodejky-drevene-dilky/
+https://www.tlamagames.com/rpg/pouto-carodejky/

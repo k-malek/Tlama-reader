@@ -35,6 +35,12 @@ jobs:
           uv run playwright install chromium
           uv run playwright install-deps chromium
 
+      - name: Cache games database
+        uses: actions/cache@v4
+        with:
+          path: games.db
+          key: games-db-${{ runner.os }}
+
       - name: Run best deals check
         env:
           ONESIGNAL_API_KEY: ${{ secrets.ONESIGNAL_API_KEY }}

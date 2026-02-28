@@ -274,3 +274,14 @@ def get_game_count() -> int:
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM games")
         return cursor.fetchone()[0]
+
+
+def get_excluded_game_urls() -> list[str]:
+    """Get URLs of games marked as owned or has_demonic_vibe (for export to blocklist)."""
+    _init_db()
+    with closing(_get_connection()) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT url FROM games WHERE owned = 1 OR has_demonic_vibe = 1"
+        )
+        return [row["url"] for row in cursor.fetchall()]
