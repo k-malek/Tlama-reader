@@ -86,6 +86,15 @@ Or install dependencies only:
 pip install .
 ```
 
+### Development (Testing)
+
+Install dev dependencies and run tests:
+
+```bash
+uv sync --extra dev
+uv run pytest tests/ -v
+```
+
 ## Usage
 
 ### Basic Usage - Check Promo Game
@@ -99,15 +108,14 @@ uv run python main.py promo
 ```python
 from website_caller import WebsiteCaller
 from utils.promo import get_promo_game
+from config import MIN_RATING_FOR_NOTIFICATION
 
-caller = WebsiteCaller(timeout=30, use_browser=True)
-promo_game = get_promo_game(caller)
-print(promo_game.get_data_row())  # Name | Price | Rating | URL
-
-caller.close()
+with WebsiteCaller(timeout=30, use_browser=True) as caller:
+    promo_game = get_promo_game(caller)
+    print(promo_game.get_data_row())  # Name | Price | Rating | URL
 
 # Send notification if rating is high enough
-if promo_game.my_rating > 140:
+if promo_game.my_rating > MIN_RATING_FOR_NOTIFICATION:
     from integrations.onesignal_caller import send_custom_event
     send_custom_event(promo_game.to_json())
 ```
@@ -356,6 +364,7 @@ MY_USER_ONESIGNAL_ID=your_onesignal_id_here
 **Important**:
 - Replace all placeholder values with your actual OneSignal credentials
 - Never commit the `.env` file to version control (it's already in `.gitignore`)
+- When using `uv run`, the `.env` file is loaded automatically
 - For GitHub Actions, add these as secrets (see GitHub Actions Setup section)
 
 ### Rating Threshold

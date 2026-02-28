@@ -1,5 +1,35 @@
+from __future__ import annotations
+
+import json
+from typing import Any
+
 from bs4 import BeautifulSoup
+
 from config import FAVORITES
+
+
+def _get_row_bool(row: Any, key: str) -> bool:
+    """Safely get a boolean from a DB row (handles missing columns)."""
+    try:
+        return bool(row[key])
+    except (KeyError, IndexError):
+        return False
+
+
+def _get_row_value(row: Any, key: str) -> Any:
+    """Safely get a value from a DB row (handles missing columns)."""
+    try:
+        return row[key]
+    except (KeyError, IndexError):
+        return None
+
+
+# Magic numbers used in rating algorithm
+RATING_PENALTY_DEMONIC = 10000
+RATING_PENALTY_ASMODEE = 10000
+RATING_PENALTY_UNWANTED = 100
+PLAY_TIME_FALLBACK_PLUS = 300  # For "181+" format
+PLAY_TIME_FALLBACK_UP_TO = 10  # For "do 15" format
 
 
 class BoardGame:
@@ -64,6 +94,48 @@ class BoardGame:
             self.from_html(html_page_data)
             self.rate()
 
+    @classmethod
+    def from_db_row(cls, row: Any) -> BoardGame:
+        """Create a BoardGame from a database row (sqlite3.Row or dict-like)."""
+        board_game = cls(html_page_data=None, url=row["url"], skip_html_parsing=True)
+        board_game.parameters = {}
+        board_game.my_rating = 0
+
+        board_game.name = row["name"]
+        board_game.final_price = row["final_price"]
+        board_game.distributor = row["distributor"]
+        board_game.category = row["category"]
+        board_game.weight_kg = row["weight_kg"]
+        board_game.ean = row["ean"]
+        board_game.game_type = row["game_type"]
+        board_game.min_age = row["min_age"]
+        board_game.game_language = row["game_language"]
+        board_game.rules_language = (
+            json.loads(row["rules_language"]) if row["rules_language"] else None
+        )
+        board_game.min_players = row["min_players"]
+        board_game.max_players = row["max_players"]
+        board_game.play_time_minutes = row["play_time_minutes"]
+        board_game.bgg_rating = row["bgg_rating"]
+        board_game.complexity = row["complexity"]
+        board_game.author = row["author"]
+        board_game.game_categories = (
+            json.loads(row["game_categories"]) if row["game_categories"] else None
+        )
+        board_game.game_mechanics = (
+            json.loads(row["game_mechanics"]) if row["game_mechanics"] else None
+        )
+        board_game.year_published = row["year_published"]
+        board_game.artists = (
+            json.loads(row["artists"]) if row["artists"] else None
+        )
+        board_game.has_demonic_vibe = _get_row_bool(row, "has_demonic_vibe")
+        board_game.owned = _get_row_bool(row, "owned")
+        board_game.image = _get_row_value(row, "image")
+
+        board_game.rate()
+        return board_game
+
     def _parse_value(self, key, value):
         """Parse and convert value based on field type."""
         attr_name = self.PARAMETER_MAPPING.get(key)
@@ -95,12 +167,12 @@ class BoardGame:
                     return 0
                 # Handle "181+" (181 or more) -> convert to 300
                 if value_str.endswith('+'):
-                    return 300  # Fixed value for "X+" format
+                    return PLAY_TIME_FALLBACK_PLUS
                 # Handle "do 15" (up to 15) -> convert to 10
                 if value_str.lower().startswith('do '):
                     try:
-                        max_time = int(value_str.split()[1])
-                        return 10  # Fixed value for "up to X" format
+                        int(value_str.split()[1])
+                        return PLAY_TIME_FALLBACK_UP_TO
                     except (ValueError, TypeError, IndexError):
                         return None
                 # Handle ranges (e.g., "61-90")
@@ -248,9 +320,8 @@ class BoardGame:
         self.my_rating = 0
 
         # Vibe
-
         if self.has_demonic_vibe:
-            self.my_rating -= 10000
+            self.my_rating -= RATING_PENALTY_DEMONIC
             return self.my_rating
 
         # Price
@@ -271,7 +342,7 @@ class BoardGame:
         if self.distributor == 'Mindok':
             self.my_rating += 10
         elif self.distributor == 'Asmodee Czech Republic':
-            self.my_rating -= 10000
+            self.my_rating -= RATING_PENALTY_ASMODEE
             return self.my_rating
 
         # Min players
@@ -310,7 +381,7 @@ class BoardGame:
                 if category in valueable_categories:
                     self.my_rating += 15
                 if category in unwanted_categories:
-                    self.my_rating -= 100
+                    self.my_rating -= RATING_PENALTY_UNWANTED
                     return self.my_rating
 
         # Game mechanics
@@ -325,7 +396,7 @@ class BoardGame:
                 if mechanic in valueable_mechanics:
                     self.my_rating += 10
                 if mechanic in unwanted_mechanics:
-                    self.my_rating -= 100
+                    self.my_rating -= RATING_PENALTY_UNWANTED
                     return self.my_rating
 
         return self.my_rating

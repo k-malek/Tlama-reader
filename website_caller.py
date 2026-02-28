@@ -171,7 +171,7 @@ class WebsiteCaller:
         finally:
             page.close()
 
-    def close(self):
+    def close(self) -> None:
         """Close the session and browser if opened."""
         self.session.close()
         if self._context:
@@ -180,3 +180,11 @@ class WebsiteCaller:
             self._browser.close()
         if self._playwright:
             self._playwright.stop()
+
+    def __enter__(self) -> "WebsiteCaller":
+        """Context manager entry. Returns self."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Context manager exit. Ensures resources are closed."""
+        self.close()

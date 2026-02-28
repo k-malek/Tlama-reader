@@ -1,6 +1,32 @@
 """Configuration constants for the Tlama caller application."""
 
+import logging
+import os
+
+logger = logging.getLogger(__name__)
+
 BASE_URL = "https://www.tlamagames.com"
+
+# Minimum rating threshold for sending OneSignal notifications
+MIN_RATING_FOR_NOTIFICATION = 140
+
+# OneSignal environment variable names
+ONESIGNAL_ENV_VARS = [
+    "ONESIGNAL_APP_ID",
+    "ONESIGNAL_API_KEY",
+    "ONESIGNAL_ORGANIZATION_API_KEY",
+    "MY_USER_EXTERNAL_ID",
+    "MY_USER_ONESIGNAL_ID",
+]
+
+
+def validate_onesignal_env() -> bool:
+    """Validate that OneSignal-related environment variables are set. Logs warnings for missing vars."""
+    missing = [var for var in ONESIGNAL_ENV_VARS if not os.getenv(var)]
+    if missing:
+        logger.warning("OneSignal integration may fail: missing env vars: %s", ", ".join(missing))
+        return False
+    return True
 
 ENDPOINTS = {
     "shop": "/deskove-hry/",
