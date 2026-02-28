@@ -114,6 +114,8 @@ class BoardGame:
 
         board_game.name = row["name"]
         board_game.final_price = row["final_price"]
+        board_game.discount_percent = _get_row_value(row, "discount_percent")
+        board_game.original_price = _get_row_value(row, "original_price")
         board_game.distributor = row["distributor"]
         board_game.category = row["category"]
         board_game.weight_kg = row["weight_kg"]
@@ -399,7 +401,9 @@ class BoardGame:
                     self.my_rating += points
                     break
 
-        # Price (rebalanced)
+        # Price (rebalanced): favor cheaper when otherwise similar; finer tiers so
+        # e.g. 1499 Kč beats 1629 Kč, 1449 Kč beats 1499 Kč (same game, different language)
+        # despite higher % off on the more expensive variant
         if self.final_price is not None:
             final_price = int(self.final_price)
             if final_price < 500:
@@ -408,7 +412,15 @@ class BoardGame:
                 self.my_rating += 10
             elif final_price < 1200:
                 self.my_rating += 5
-            elif final_price >= 2000:
+            elif final_price < 1450:
+                self.my_rating += 18
+            elif final_price < 1500:
+                self.my_rating += 15
+            elif final_price < 1800:
+                self.my_rating += 2
+            elif final_price < 2000:
+                pass
+            else:
                 self.my_rating -= 30
 
         # Discount (reduced: +1 per 10%, max 10)

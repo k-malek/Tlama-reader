@@ -66,12 +66,15 @@ def _init_db() -> None:
                 image TEXT
             )
         """)
-        try:
-            cursor.execute("""
-                ALTER TABLE games ADD COLUMN owned INTEGER DEFAULT 0
-            """)
-        except sqlite3.OperationalError:
-            pass  # Column already exists
+        for col_sql in [
+            "ALTER TABLE games ADD COLUMN owned INTEGER DEFAULT 0",
+            "ALTER TABLE games ADD COLUMN discount_percent INTEGER",
+            "ALTER TABLE games ADD COLUMN original_price TEXT",
+        ]:
+            try:
+                cursor.execute(col_sql)
+            except sqlite3.OperationalError:
+                pass  # Column already exists
         conn.commit()
 
     _db_initialized = True
@@ -109,16 +112,18 @@ def save_game(board_game: BoardGame) -> None:
         cursor = conn.cursor()
         cursor.execute("""
             INSERT OR REPLACE INTO games (
-                url, name, final_price, distributor, category,
+                url, name, final_price, discount_percent, original_price, distributor, category,
                 weight_kg, ean, game_type, min_age, game_language, rules_language,
                 min_players, max_players, play_time_minutes, bgg_rating, complexity,
                 author, game_categories, game_mechanics, year_published, artists, my_rating,
                 has_demonic_vibe, owned, image
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             board_game.url,
             _ensure_not_list(board_game.name),
             _ensure_not_list(board_game.final_price),
+            getattr(board_game, "discount_percent", None),
+            getattr(board_game, "original_price", None),
             _ensure_not_list(board_game.distributor),
             _ensure_not_list(board_game.category),
             board_game.weight_kg,

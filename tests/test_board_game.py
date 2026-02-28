@@ -34,6 +34,48 @@ def test_rate_basic() -> None:
     assert game.my_rating > 0
 
 
+def test_rate_cheaper_beats_higher_discount() -> None:
+    """Cheaper option ranks higher than more expensive with higher % off (same game)."""
+    cheap = BoardGame(html_page_data=None, url="https://tlamagames.com/deskove-hry/ark-nova/", skip_html_parsing=True)
+    cheap.parameters = {}
+    cheap.final_price = "1499"
+    cheap.discount_percent = 10
+    cheap.distributor = "Feuerland Spiele"
+    cheap.bgg_rating = 8.5
+    cheap.rate()
+
+    expensive = BoardGame(html_page_data=None, url="https://tlamagames.com/deskove-hry/archa-nova/", skip_html_parsing=True)
+    expensive.parameters = {}
+    expensive.final_price = "1629"
+    expensive.discount_percent = 18
+    expensive.distributor = "Mindok"
+    expensive.bgg_rating = 8.5
+    expensive.rate()
+
+    assert cheap.my_rating > expensive.my_rating
+
+
+def test_rate_cheaper_beats_subtle_discount_nucleum() -> None:
+    """Cheaper Nucleum CZ (1449, 9%) beats EN (1499, 11%)."""
+    cheap = BoardGame(html_page_data=None, url="https://tlamagames.com/deskove-hry/nukleum--cesky/", skip_html_parsing=True)
+    cheap.parameters = {}
+    cheap.final_price = "1449"
+    cheap.discount_percent = 9
+    cheap.distributor = "Old Dawg"
+    cheap.bgg_rating = 8.1
+    cheap.rate()
+
+    expensive = BoardGame(html_page_data=None, url="https://tlamagames.com/deskove-hry/nucleum/", skip_html_parsing=True)
+    expensive.parameters = {}
+    expensive.final_price = "1499"
+    expensive.discount_percent = 11
+    expensive.distributor = "Board&Dice"
+    expensive.bgg_rating = 8.1
+    expensive.rate()
+
+    assert cheap.my_rating > expensive.my_rating
+
+
 def test_rate_discount_bonus() -> None:
     """Games with discount get rating bonus."""
     game = BoardGame(html_page_data=None, url="https://test.com", skip_html_parsing=True)

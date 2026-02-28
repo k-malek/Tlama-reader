@@ -39,6 +39,16 @@ class TlamaCallerGUI(ctk.CTk):
         self._create_widgets()
         self._init_caller()
 
+    @staticmethod
+    def _format_price(game: BoardGame) -> str:
+        """Format price for table: show discount % only when applicable."""
+        if not game.final_price:
+            return "N/A"
+        base = f"{game.final_price} Kč"
+        if game.discount_percent and game.discount_percent > 0:
+            return f"{base} (−{game.discount_percent}%)"
+        return base
+
     def _center_on_screen(self) -> None:
         """Center the window on the primary/main screen."""
         self.update_idletasks()
@@ -387,7 +397,7 @@ class TlamaCallerGUI(ctk.CTk):
         for game in games:
             self.db_tree.insert("", "end", values=(
                 game.name or "N/A",
-                f"{game.final_price} Kč" if game.final_price else "N/A",
+                self._format_price(game),
                 f"{game.my_rating:.1f}" if game.my_rating else "N/A",
                 f"{game.bgg_rating:.1f}" if game.bgg_rating else "N/A",
                 "■" if getattr(game, "has_demonic_vibe", False) else "□",
@@ -506,7 +516,7 @@ class TlamaCallerGUI(ctk.CTk):
         for game in games:
             self.search_tree.insert("", "end", values=(
                 game.name or "N/A",
-                f"{game.final_price} Kč" if game.final_price else "N/A",
+                self._format_price(game),
                 f"{game.my_rating:.1f}" if game.my_rating else "N/A",
                 f"{game.bgg_rating:.1f}" if game.bgg_rating else "N/A",
                 "🔗 Open" if game.url else "N/A",
