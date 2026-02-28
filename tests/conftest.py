@@ -14,6 +14,32 @@ def use_in_memory_db():
 
 
 @pytest.fixture
+def sample_game_html_with_discount():
+    """HTML with discounted price (1 999 Kč –10 % 1 799 Kč)."""
+    return """
+    <html>
+    <body>
+        <h1>Discounted Game</h1>
+        <div class="p-final-price-wrapper">1 999 Kč –10 % 1 799 Kč</div>
+        <a data-testid="productCardBrandName"><span>Mindok</span></a>
+        <a class="highlighted" href="https://example.com/img.jpg"></a>
+        <div class="extended-description">
+            <table class="detail-parameters">
+                <tr><th>5. Minimální počet hráčů</th><td>2</td></tr>
+                <tr><th>6. Maximální počet hráčů</th><td>4</td></tr>
+                <tr><th>7. Herní doba (minut)</th><td>60</td></tr>
+                <tr><th>8. Hodnocení Boardgamegeek (0-10)</th><td>8.0</td></tr>
+                <tr><th>9. Náročnost (1-5)</th><td>3.0</td></tr>
+                <tr><th>Herní kategorie</th><td>Kostkové</td></tr>
+                <tr><th>Herní mechaniky</th><td>Solo / Solitaire Game</td></tr>
+            </table>
+        </div>
+    </body>
+    </html>
+    """
+
+
+@pytest.fixture
 def sample_game_html():
     """Minimal HTML that BoardGame.from_html can parse."""
     return """

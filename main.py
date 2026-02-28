@@ -2,7 +2,7 @@ import argparse
 import logging
 import sys
 
-from config import MIN_RATING_FOR_NOTIFICATION
+from config import MIN_RATING_FOR_NOTIFICATION, to_czk_game_url
 from database import get_excluded_game_urls
 from integrations.onesignal_caller import send_custom_event
 from model.board_game import BoardGame
@@ -62,8 +62,9 @@ def run_search_check(filters: list | None = None, endpoint: str = "shop") -> Non
 
 
 def run_game_check(url: str) -> None:
-    with WebsiteCaller(timeout=30, use_browser=True) as caller:
-        game_data = caller.get_text(url)
+    czk_url = to_czk_game_url(url)
+    with WebsiteCaller(timeout=30, use_browser=False) as caller:
+        game_data = caller.get_text(czk_url)
         board_game = BoardGame(game_data, url)
         board_game.print_all_info()
 

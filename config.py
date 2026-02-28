@@ -8,7 +8,25 @@ logger = logging.getLogger(__name__)
 BASE_URL = "https://www.tlamagames.com"
 
 # Minimum rating threshold for sending OneSignal notifications
-MIN_RATING_FOR_NOTIFICATION = 140
+MIN_RATING_FOR_NOTIFICATION = 200
+
+# Rating algorithm: BGG tier points (primary quality signal)
+BGG_TIERS = [
+    (8.5, 235),
+    (8.0, 219),
+    (7.5, 130),
+    (7.0, 40),
+    (6.5, 25),
+    (6.0, 5),
+    (5.0, -25),
+    (0.0, -55),
+]
+RATING_CATEGORY_CAP = 40
+RATING_MECHANIC_CAP = 50
+RATING_DISCOUNT_PER_10_PCT = 1
+RATING_DISCOUNT_MAX = 10
+RATING_COMPLEXITY_BONUS = 50  # when complexity >= 3.5 and bgg >= 7.5
+RATING_PLAY_TIME_FILLER_PENALTY = 40  # games < 30 min
 
 # OneSignal environment variable names
 ONESIGNAL_ENV_VARS = [
@@ -33,6 +51,19 @@ ENDPOINTS = {
     "promo": "/blue-friday/",
     "game": "/{game_url}",
 }
+
+# Map English/other-language paths to Czech (CZK prices)
+_URL_TO_CZK = [
+    ("/en/board-games/", "/deskove-hry/"),
+]
+
+
+def to_czk_game_url(url: str) -> str:
+    """Convert a game URL to the Czech version so prices are in CZK."""
+    for en_path, cz_path in _URL_TO_CZK:
+        if en_path in url:
+            return url.replace(en_path, cz_path, 1)
+    return url
 
 FILTERS = {
     "available":"stock=1",

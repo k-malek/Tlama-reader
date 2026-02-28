@@ -5,7 +5,16 @@ from typing import Any
 
 from bs4 import BeautifulSoup
 
-from config import FAVORITES
+from config import (
+    BGG_TIERS,
+    FAVORITES,
+    RATING_CATEGORY_CAP,
+    RATING_COMPLEXITY_BONUS,
+    RATING_DISCOUNT_MAX,
+    RATING_DISCOUNT_PER_10_PCT,
+    RATING_MECHANIC_CAP,
+    RATING_PLAY_TIME_FILLER_PENALTY,
+)
 
 
 def _get_row_bool(row: Any, key: str) -> bool:
@@ -89,6 +98,8 @@ class BoardGame:
         self.artists = None
         self.has_demonic_vibe = 0
         self.image = None
+        self.discount_percent: int | None = None
+        self.original_price: str | None = None
         self.parameters = {}
         if not skip_html_parsing and html_page_data:
             self.from_html(html_page_data)
@@ -215,11 +226,57 @@ class BoardGame:
             return [v.strip() for v in value_str.split(",")]
         return value_str
 
+    def _normalize_price(self, text: str) -> str | None:
+        """Extract numeric price from '1 999 Kč' (Czech format)."""
+        raw = text.replace(' ', '').replace('Kč', '').replace('\n', '').strip()
+        return raw if raw and raw.isdigit() else None
+
+    def _parse_discount_percent(self, text: str) -> int | None:
+        """Extract discount from '–10 %' or '-10%'."""
+        cleaned = text.replace('%', '').replace(' ', '').strip().lstrip('–\-')
+        return int(cleaned) if cleaned.isdigit() else None
+
+    def _parse_price_text(self, text: str) -> None:
+        """Parse price from wrapper text like '1 999 Kč –10 % 1 799 Kč' (no child elements)."""
+        clean = text.replace('\n', ' ')
+        if ' %' in clean:
+            before_pct, after_pct = clean.split(' %', 1)
+            pct_part = before_pct.split()[-1].lstrip('–\-')
+            if pct_part.isdigit():
+                self.discount_percent = int(pct_part)
+            self.final_price = self._normalize_price(after_pct.split('Kč')[0] + 'Kč')
+        for sep in (' –', ' -'):
+            if sep in clean:
+                self.original_price = self._normalize_price(clean.split(sep)[0] + 'Kč')
+                break
+
     def from_html(self, html):
         soup = BeautifulSoup(html, 'html.parser')
         self.name = soup.find('h1').text.strip() if soup.find('h1') else None
-        self.final_price = soup.find('span', class_='price-final-holder').text.replace(' ', '').replace('Kč', '').strip() if soup.find('span', class_='price-final-holder') else None
-        
+
+        # Parse price from main product block (price-standard, price-save, price-final-holder)
+        price_wrapper = soup.find(class_='p-final-price-wrapper')
+        if price_wrapper:
+            std = price_wrapper.find(class_='price-standard')
+            save = price_wrapper.find(class_='price-save')
+            final = price_wrapper.find(class_='price-final-holder')
+            if std:
+                self.original_price = self._normalize_price(std.get_text())
+            if final:
+                self.final_price = self._normalize_price(final.get_text())
+            elif std:
+                self.final_price = self.original_price
+            if save:
+                self.discount_percent = self._parse_discount_percent(save.get_text())
+            # Fallback when wrapper has only raw text (e.g. in tests)
+            if self.final_price is None and price_wrapper.get_text(strip=True):
+                self._parse_price_text(price_wrapper.get_text())
+        # Fallback to price-final-holder only
+        if self.final_price is None:
+            holder = soup.find('span', class_='price-final-holder')
+            if holder:
+                self.final_price = self._normalize_price(holder.get_text())
+
         # Extract distributor/brand name
         brand_link = soup.find('a', {'data-testid': 'productCardBrandName'})
         if brand_link:
@@ -284,9 +341,15 @@ class BoardGame:
     def print_all_info(self):
         """Print board game information in a nice table format."""
         # Define fields to display with their labels
+        price_str = None
+        if self.final_price:
+            if self.original_price and self.discount_percent:
+                price_str = f"{self.original_price} Kč (−{self.discount_percent}%) → {self.final_price} Kč"
+            else:
+                price_str = f"{self.final_price} Kč"
         fields = [
             ('Name', self.name),
-            ('Price', f"{self.final_price} Kč" if self.final_price else None),
+            ('Price', price_str),
             ('Rating', self.my_rating),
             ('Distributor', self.distributor),
             ('Category', self.category),
@@ -324,80 +387,93 @@ class BoardGame:
             self.my_rating -= RATING_PENALTY_DEMONIC
             return self.my_rating
 
-        # Price
-        if self.final_price is not None:
-            final_price = int(self.final_price)
-            if final_price < 500:
-                self.my_rating += 50
-            elif final_price < 1000:
-                self.my_rating += 20
-            elif final_price < 1200:
-                self.my_rating += 5
-            elif final_price >= 1200 and final_price < 2000:
-                pass
-            else:
-                self.my_rating -= 50
-
-        # Distributor
-        if self.distributor == 'Mindok':
-            self.my_rating += 10
-        elif self.distributor == 'Asmodee Czech Republic':
+        # Distributor (Asmodee instant reject)
+        if self.distributor == 'Asmodee Czech Republic':
             self.my_rating -= RATING_PENALTY_ASMODEE
             return self.my_rating
 
-        # Min players
+        # BGG as foundation (primary quality signal)
+        if self.bgg_rating is not None:
+            for threshold, points in BGG_TIERS:
+                if self.bgg_rating >= threshold:
+                    self.my_rating += points
+                    break
+
+        # Price (rebalanced)
+        if self.final_price is not None:
+            final_price = int(self.final_price)
+            if final_price < 500:
+                self.my_rating += 15
+            elif final_price < 1000:
+                self.my_rating += 10
+            elif final_price < 1200:
+                self.my_rating += 5
+            elif final_price >= 2000:
+                self.my_rating -= 30
+
+        # Discount (reduced: +1 per 10%, max 10)
+        if self.discount_percent is not None and self.discount_percent > 0:
+            bonus = min(
+                self.discount_percent * RATING_DISCOUNT_PER_10_PCT // 10,
+                RATING_DISCOUNT_MAX,
+            )
+            self.my_rating += bonus
+
+        # Mindok
+        if self.distributor == 'Mindok':
+            self.my_rating += 10
+
+        # Solo
         if self.min_players == 1:
             self.my_rating += 10
 
-        # BGG rating
-        if self.bgg_rating is not None:
-            if self.bgg_rating >= 8:
-                self.my_rating += 20
-            elif self.bgg_rating >= 7.5:
-                self.my_rating += 10
-            elif self.bgg_rating >= 7:
-                self.my_rating += 5
-            elif self.bgg_rating <= 6:
-                self.my_rating -= 20
-            elif self.bgg_rating <= 5:
-                self.my_rating -= 40
+        # Complexity bonus (depth signal for substantial games)
+        if (
+            self.complexity is not None
+            and self.complexity >= 3.5
+            and self.bgg_rating is not None
+            and self.bgg_rating >= 7.5
+        ):
+            self.my_rating += RATING_COMPLEXITY_BONUS
 
-        # Play time
-        if self.play_time_minutes is not None:
-            if self.play_time_minutes > 120:
-                self.my_rating -= 10
-            elif self.play_time_minutes <= 30:
-                self.my_rating -= 50
+        # Play time (only penalty for filler < 30 min)
+        if self.play_time_minutes is not None and self.play_time_minutes <= 30:
+            self.my_rating -= RATING_PLAY_TIME_FILLER_PENALTY
 
-        # Game categories
+        # Game categories (capped)
         if self.game_categories is not None:
-            very_valueable_categories = FAVORITES['categories']['very_valuable']
-            valueable_categories = FAVORITES['categories']['valuable']
-            unwanted_categories = FAVORITES['categories']['unwanted']
+            very_valuable = FAVORITES['categories']['very_valuable']
+            valuable = FAVORITES['categories']['valuable']
+            unwanted = FAVORITES['categories']['unwanted']
 
             for category in self.game_categories:
-                if category in very_valueable_categories:
-                    self.my_rating += 50
-                if category in valueable_categories:
-                    self.my_rating += 15
-                if category in unwanted_categories:
+                if category in unwanted:
                     self.my_rating -= RATING_PENALTY_UNWANTED
                     return self.my_rating
 
-        # Game mechanics
+            cat_score = 0
+            has_very = any(c in very_valuable for c in self.game_categories)
+            valuable_count = sum(1 for c in self.game_categories if c in valuable)
+            if has_very:
+                cat_score += 30
+            cat_score += valuable_count * 10
+            self.my_rating += min(cat_score, RATING_CATEGORY_CAP)
+
+        # Game mechanics (capped; very_valuable counts once to prevent stacking)
         if self.game_mechanics is not None:
-            very_valueable_mechanics = FAVORITES['mechanics']['very_valuable']
-            valueable_mechanics = FAVORITES['mechanics']['valuable']
-            unwanted_mechanics = FAVORITES['mechanics']['unwanted']
+            very_valuable = FAVORITES['mechanics']['very_valuable']
+            valuable = FAVORITES['mechanics']['valuable']
+            unwanted = FAVORITES['mechanics']['unwanted']
 
             for mechanic in self.game_mechanics:
-                if mechanic in very_valueable_mechanics:
-                    self.my_rating += 50
-                if mechanic in valueable_mechanics:
-                    self.my_rating += 10
-                if mechanic in unwanted_mechanics:
+                if mechanic in unwanted:
                     self.my_rating -= RATING_PENALTY_UNWANTED
                     return self.my_rating
+
+            has_very = any(m in very_valuable for m in self.game_mechanics)
+            valuable_count = sum(1 for m in self.game_mechanics if m in valuable)
+            mech_score = (30 if has_very else 0) + valuable_count * 8
+            self.my_rating += min(mech_score, RATING_MECHANIC_CAP)
 
         return self.my_rating
 

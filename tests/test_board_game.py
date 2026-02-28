@@ -34,6 +34,28 @@ def test_rate_basic() -> None:
     assert game.my_rating > 0
 
 
+def test_rate_discount_bonus() -> None:
+    """Games with discount get rating bonus."""
+    game = BoardGame(html_page_data=None, url="https://test.com", skip_html_parsing=True)
+    game.parameters = {}
+    game.final_price = "1799"
+    game.discount_percent = 10
+    game.distributor = "Mindok"
+    game.min_players = 2
+    game.bgg_rating = 8.0
+    game.rate()
+    # Discount 10% gives +1 (1 per 10%)
+    assert game.my_rating > 0
+    game_no_discount = BoardGame(html_page_data=None, url="https://test.com", skip_html_parsing=True)
+    game_no_discount.parameters = {}
+    game_no_discount.final_price = "1799"
+    game_no_discount.distributor = "Mindok"
+    game_no_discount.min_players = 2
+    game_no_discount.bgg_rating = 8.0
+    game_no_discount.rate()
+    assert game.my_rating > game_no_discount.my_rating
+
+
 def test_rate_demonic_penalty() -> None:
     """Games with has_demonic_vibe get large penalty."""
     game = BoardGame(html_page_data=None, url="https://test.com", skip_html_parsing=True)
@@ -42,6 +64,48 @@ def test_rate_demonic_penalty() -> None:
     game.has_demonic_vibe = True
     game.rate()
     assert game.my_rating <= -RATING_PENALTY_DEMONIC
+
+
+def test_from_html_with_discount(sample_game_html_with_discount: str) -> None:
+    """BoardGame parses discounted price block."""
+    game = BoardGame(sample_game_html_with_discount, "https://example.com/game")
+    assert game.original_price == "1999"
+    assert game.final_price == "1799"
+    assert game.discount_percent == 10
+
+
+def test_rate_high_bgg_substantial_game() -> None:
+    """High BGG + complexity (e.g. Andromeda-like) gets ~350."""
+    game = BoardGame(html_page_data=None, url="https://test.com", skip_html_parsing=True)
+    game.parameters = {}
+    game.final_price = "1799"
+    game.discount_percent = 10
+    game.distributor = "Mindok"
+    game.min_players = 2
+    game.bgg_rating = 8.3
+    game.complexity = 3.7
+    game.play_time_minutes = 160
+    game.game_categories = ["Průzkum vesmíru", "Sci-fi"]
+    game.game_mechanics = ["Dice Rolling", "Hand Management", "Variable Player Powers"]
+    game.rate()
+    assert 320 <= game.my_rating <= 380
+
+
+def test_rate_moderate_bgg_light_game() -> None:
+    """Moderate BGG + many tags (e.g. Dračí hrad-like) gets ~150."""
+    game = BoardGame(html_page_data=None, url="https://test.com", skip_html_parsing=True)
+    game.parameters = {}
+    game.final_price = "599"
+    game.discount_percent = 40
+    game.distributor = "Dino"
+    game.min_players = 1
+    game.bgg_rating = 7.3
+    game.complexity = 2.0
+    game.play_time_minutes = 75
+    game.game_categories = ["Kostkové", "Bludiště", "Dobrodružné", "Fantasy"]
+    game.game_mechanics = ["Cooperative Game", "Dice Rolling", "Modular Board", "Hand Management"]
+    game.rate()
+    assert 130 <= game.my_rating <= 170
 
 
 def test_from_db_row() -> None:

@@ -31,12 +31,23 @@ class TlamaCallerGUI(ctk.CTk):
 
         self.title("🎲 Tlama Games Deal Finder")
         self.geometry("1200x800")
+        self._center_on_screen()
 
         self.caller: Optional[WebsiteCaller] = None
         self.current_games: List[BoardGame] = []
 
         self._create_widgets()
         self._init_caller()
+
+    def _center_on_screen(self) -> None:
+        """Center the window on the primary/main screen."""
+        self.update_idletasks()
+        width, height = 1200, 800
+        screen_w = self.winfo_screenwidth()
+        screen_h = self.winfo_screenheight()
+        x = max(0, (screen_w - width) // 2)
+        y = max(0, (screen_h - height) // 2)
+        self.geometry(f"{width}x{height}+{x}+{y}")
 
     def _init_caller(self) -> None:
         """Initialize website caller in background."""
