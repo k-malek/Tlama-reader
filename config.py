@@ -7,8 +7,14 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.tlamagames.com"
 
+# Deal tiers (from DB percentiles on positive-rated games, rounded up to 10)
+# Used in deal_template.html for Nice / Great / Outstanding labels
+RATING_NICE = 70      # top 50%
+RATING_GREAT = 140    # top 25%
+RATING_OUTSTANDING = 230  # top 10%
+
 # Minimum rating threshold for sending OneSignal notifications
-MIN_RATING_FOR_NOTIFICATION = 200
+MIN_RATING_FOR_NOTIFICATION = RATING_NICE
 
 # Rating algorithm: BGG tier points (primary quality signal)
 BGG_TIERS = [
@@ -32,7 +38,6 @@ RATING_PLAY_TIME_FILLER_PENALTY = 40  # games < 30 min
 ONESIGNAL_ENV_VARS = [
     "ONESIGNAL_APP_ID",
     "ONESIGNAL_API_KEY",
-    "ONESIGNAL_ORGANIZATION_API_KEY",
     "MY_USER_EXTERNAL_ID",
     "MY_USER_ONESIGNAL_ID",
 ]

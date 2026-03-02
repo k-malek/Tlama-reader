@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light">
     {% assign event = journey.last_event %}
     {% assign game = event.data %}
     {% if game.deal == "weekly" %}
@@ -14,11 +15,11 @@
         {% assign rating_text = "Outstanding" %}
         {% assign rating_emoji = "⭐" %}
         {% assign badge_class = "badge-outstanding" %}
-    {% elsif game.my_rating >= 180 %}
+    {% elsif game.my_rating >= 140 %}
         {% assign rating_text = "Great" %}
         {% assign rating_emoji = "🌟" %}
         {% assign badge_class = "badge-great" %}
-    {% elsif game.my_rating >= 140 %}
+    {% elsif game.my_rating >= 70 %}
         {% assign rating_text = "Nice" %}
         {% assign rating_emoji = "✨" %}
         {% assign badge_class = "badge-nice" %}
@@ -328,6 +329,7 @@
     </style>
 </head>
 <body>
+    <div style="display:none;max-height:0;overflow:hidden;">{{ game.name }} — {{ game.final_price }} Kč{% if game.discount_percent %} (−{{ game.discount_percent }}% off){% endif %}</div>
     <a href="[unsubscribe_url]">Unsubscribe</a>
     <div class="email-container{% if is_weekly %} weekly-deal{% endif %}">
         <div class="header{% if is_weekly %} weekly-header{% endif %}">
@@ -335,7 +337,7 @@
                 <span class="badge badge-weekly">🔥 WEEKLY DEAL 🔥</span>
             {% endif %}
             <h1>🎲 {{ rating_emoji | default: "🎲" }} {{ rating_text | default: "Special" }} Board Game Deal!</h1>
-            {% if game.my_rating > 100 %}
+            {% if game.my_rating >= 70 %}
                 <span class="badge {{ badge_class }}">{{ rating_emoji | default: "🎲" }} {{ rating_text | default: "Special" }}</span>
             {% endif %}
         </div>
@@ -353,16 +355,24 @@
 
             <div class="price-section{% if is_weekly %} weekly-price{% endif %}">
                 <div class="price-label">{% if is_weekly %}🔥 Weekly Deal Price{% else %}Special Price{% endif %}</div>
+                {% if game.original_price and game.discount_percent and game.discount_percent > 0 %}
+                <div style="font-size:16px;opacity:0.9;text-decoration:line-through;margin-bottom:5px;">{{ game.original_price }} Kč</div>
+                <div class="price-value">
+                    {{ game.final_price }}<span class="price-currency"> Kč</span>
+                    <span style="font-size:18px;margin-left:8px;">(−{{ game.discount_percent }}%)</span>
+                </div>
+                {% else %}
                 <div class="price-value">
                     {{ game.final_price }}<span class="price-currency"> Kč</span>
                 </div>
+                {% endif %}
             </div>
 
             <div class="game-details">
                 {% if game.min_players and game.max_players %}
                 <div class="detail-item">
                     <div class="detail-label">Players</div>
-                    <div class="detail-value">{{ game.min_players }} - {{ game.max_players }}</div>
+                    <div class="detail-value">{{ game.min_players }} - {{ game.max_players }}{% if game.min_players == 1 %} <span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-size:12px;margin-left:6px;">✓ Solo</span>{% endif %}</div>
                 </div>
                 {% endif %}
 
