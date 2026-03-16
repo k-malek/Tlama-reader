@@ -4,9 +4,23 @@ Website Caller Utility
 A simple utility class for making HTTP requests to websites.
 """
 
-import requests
+import logging
+import time
 from typing import Optional, Dict, Any
 from urllib.parse import urlparse
+
+import requests
+
+logger = logging.getLogger(__name__)
+
+# Retry config for transient connection failures (e.g. RemoteDisconnected from CI/datacenter IPs)
+RETRY_ATTEMPTS = 4
+RETRY_BASE_DELAY = 1.0
+RETRY_EXCEPTIONS = (
+    requests.exceptions.ConnectionError,
+    requests.exceptions.Timeout,
+    requests.exceptions.ChunkedEncodingError,
+)
 
 try:
     from playwright.sync_api import sync_playwright, Browser, BrowserContext
@@ -80,16 +94,28 @@ class WebsiteCaller:
         if method not in ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]:
             raise ValueError(f"Unsupported HTTP method: {method}")
 
-        try:
-            response = self.session.request(
-                method=method,
-                url=url,
-                timeout=self.timeout,
-                **kwargs
-            )
-            return response
-        except requests.RequestException as e:
-            raise requests.RequestException(f"Failed to call {url}: {str(e)}") from e
+        for attempt in range(RETRY_ATTEMPTS + 1):
+            try:
+                response = self.session.request(
+                    method=method,
+                    url=url,
+                    timeout=self.timeout,
+                    **kwargs
+                )
+                return response
+            except RETRY_EXCEPTIONS as e:
+                if attempt < RETRY_ATTEMPTS:
+                    delay = RETRY_BASE_DELAY * (2**attempt)
+                    logger.warning(
+                        "Request failed (attempt %d/%d): %s. Retrying in %.1fs...",
+                        attempt + 1,
+                        RETRY_ATTEMPTS + 1,
+                        str(e)[:80],
+                        delay,
+                    )
+                    time.sleep(delay)
+                else:
+                    raise requests.RequestException(f"Failed to call {url}: {str(e)}") from e
 
     def get(self, url: str, params: Optional[Dict[str, Any]] = None,
             headers: Optional[Dict[str, str]] = None) -> requests.Response:
