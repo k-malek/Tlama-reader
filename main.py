@@ -2,7 +2,7 @@ import argparse
 import logging
 import sys
 
-from config import MIN_RATING_FOR_NOTIFICATION, to_czk_game_url
+from config import MIN_RATING_FOR_NOTIFICATION, PROMO_ACCEPTED_GAME_TYPES, to_czk_game_url
 from database import get_excluded_game_urls
 from integrations.onesignal_caller import send_custom_event
 from model.board_game import BoardGame
@@ -26,6 +26,13 @@ def run_promo_check() -> None:
         try:
             promo_game = get_promo_game(caller)
             logger.info(promo_game.get_data_row())
+            if promo_game.game_type not in PROMO_ACCEPTED_GAME_TYPES:
+                logger.info(
+                    "Skipping promo: game_type=%s not in %s",
+                    promo_game.game_type,
+                    PROMO_ACCEPTED_GAME_TYPES,
+                )
+                return
             if is_url_excluded(promo_game.url):
                 logger.info("Skipping excluded game: %s", promo_game.url)
                 return
