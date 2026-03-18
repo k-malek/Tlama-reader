@@ -14,7 +14,7 @@ from website_caller import WebsiteCaller
 
 # Configure root logger so all child loggers inherit the configuration
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[logging.StreamHandler()]
 )

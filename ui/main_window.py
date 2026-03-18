@@ -8,7 +8,7 @@ from typing import List, Optional
 import customtkinter as ctk
 from tkinter import ttk
 
-from config import CATEGORY_FILTERS, FILTER_GROUPS, FILTERS, MECHANIC_FILTERS
+from config import CATEGORY_FILTERS, ENDPOINTS, FILTER_GROUPS, FILTERS, MECHANIC_FILTERS
 from database import (
     get_all_games,
     get_game_count,
@@ -181,6 +181,18 @@ class TlamaCallerGUI(ctk.CTk):
         ctk.CTkLabel(top_frame, text="Search Filters", font=ctk.CTkFont(size=20, weight="bold")).pack(
             anchor="w", padx=10, pady=(0, 15)
         )
+
+        endpoint_frame = ctk.CTkFrame(top_frame)
+        endpoint_frame.pack(fill="x", padx=10, pady=(0, 10))
+        ctk.CTkLabel(endpoint_frame, text="Endpoint:", width=100, anchor="w").pack(side="left", padx=10, pady=10)
+        endpoint_keys = [k for k in ENDPOINTS if k != "game"]
+        self.endpoint_dropdown = ctk.CTkComboBox(
+            endpoint_frame,
+            values=endpoint_keys,
+            width=200,
+        )
+        self.endpoint_dropdown.set("shop")
+        self.endpoint_dropdown.pack(side="left", padx=5, pady=10)
 
         dropdowns_frame = ctk.CTkFrame(top_frame)
         dropdowns_frame.pack(fill="x", padx=10, pady=10)
@@ -492,7 +504,13 @@ class TlamaCallerGUI(ctk.CTk):
 
         def search() -> None:
             try:
-                games = search_for_game(self.caller, filters=self.selected_filters.copy(), progress_callback=progress_callback)
+                endpoint = self.endpoint_dropdown.get()
+                games = search_for_game(
+                    self.caller,
+                    filters=self.selected_filters.copy(),
+                    endpoint=endpoint,
+                    progress_callback=progress_callback,
+                )
                 self.current_games = games
                 self.after(0, lambda: self.progress_frame.pack_forget())
                 self.after(0, lambda: self._display_search_results(games))
