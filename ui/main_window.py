@@ -11,12 +11,14 @@ from tkinter import ttk
 from config import CATEGORY_FILTERS, ENDPOINTS, FILTER_GROUPS, FILTERS, MECHANIC_FILTERS
 from database import (
     get_all_games,
+    get_excluded_game_urls,
     get_game_count,
     load_game,
     save_game,
     search_games_in_db,
     update_game_boolean,
 )
+from utils.blocklist import get_blocklist_path, is_url_excluded
 from model.board_game import BoardGame
 from ui.game_details import GameDetailsWindow
 from utils.search import search_for_game
@@ -135,6 +137,7 @@ class TlamaCallerGUI(ctk.CTk):
         ctk.CTkLabel(search_frame, text="Search:").pack(side="left", padx=10)
         self.db_search_entry = ctk.CTkEntry(search_frame, placeholder_text="Game name...")
         self.db_search_entry.pack(side="left", padx=10, fill="x", expand=True)
+        self.db_search_entry.bind("<Return>", lambda e: self._search_database())
         ctk.CTkButton(search_frame, text="Search", command=self._search_database).pack(side="left", padx=10)
 
         list_frame = ctk.CTkFrame(self.db_tab)
@@ -522,9 +525,11 @@ class TlamaCallerGUI(ctk.CTk):
 
     def _display_search_results(self, games: List[BoardGame]) -> None:
         self.search_tree.delete(*self.search_tree.get_children())
-        self.search_games = games[:100]
+        excluded = __import__("utils.blocklist", fromlist=["load_excluded_urls"]).load_excluded_urls()
+        filtered = [g for g in games if not is_url_excluded(g.url, excluded)]
+        self.search_games = filtered[:100]
         self._apply_search_sort()
-        self.status_label.configure(text=f"✅ Found {len(games)} games")
+        self.status_label.configure(text=f"✅ Found {len(filtered)} games")
 
     def _apply_search_sort(self) -> None:
         self.search_tree.delete(*self.search_tree.get_children())
@@ -667,6 +672,20 @@ class TlamaCallerGUI(ctk.CTk):
                 self.caller.close()
             except Exception:
                 pass
+        try:
+            urls = get_excluded_game_urls()
+            path = get_blocklist_path()
+            header = (
+                "# Excluded game URLs - never send notifications for these games\n"
+                "# One URL per line. Add via: uv run python main.py export-excluded\n"
+                "# Or edit manually. Used by CI and local runs.\n\n"
+            )
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(header)
+                for url in sorted(urls):
+                    f.write(f"{url}\n")
+        except Exception:
+            pass
         self.destroy()
 
 
