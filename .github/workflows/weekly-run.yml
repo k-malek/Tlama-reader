@@ -3,7 +3,7 @@ name: Weekly Best Deals Check
 on:
   schedule:
     # Run every Monday at 7:30 AM UTC+1 (6:30 AM UTC)
-    - cron: '30 6 * * 1'
+    - cron: '30 5 * * 1'
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
