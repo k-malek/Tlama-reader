@@ -56,7 +56,9 @@ def validate_onesignal_env() -> bool:
 
 ENDPOINTS = {
     "shop": "/deskove-hry/",
-    "promo": "/jarni-vyprodej/",
+    "promo": "/den-her/",
+    "rentals": "/pujcovna/",
+    "bazar": "/bazar/",
     "game": "/{game_url}",
 }
 
@@ -78,8 +80,8 @@ FILTERS = {
     "games_only":"pv117=2127",
     "discounted":"dd=1",
     "for_one_player":"pv129=2142",
-    "simple":"pv141=2409,14496,14553,13704,14583,14499,14613,13761,14193,14052,2367,14067,14352,14079,13746,6316",
-    "medium":"pv141=6316,14217,14082,13596,14382,2205,13935,4898,13998,13644,4520,14394",
+    "simple":"pv141=2409,14496,14553,13704,14583,14499,14613,13761,14193,14052,2367,14067,14352,14079",
+    "medium":"pv141=14079,13746,6316,14217,14082,13596,14382,2205,13935,4898,13998,13644,4520,14394",
     "complex":"pv141=14394,15450,14325,14994,2271,15288,14334,16470,16482,18048,15717,4904,26046",
     "good":"pv138=2316,14004,4895,13593,14112,14028,13701,6313,13635,6229,2172,13968,13641,14940,14166,14991,17616,15069,17001,4886,2484,23652,21855,23634,18087,19497,22836,26457,6307",
     "amazing":"pv138=2172,13968,13641,14940,14166,14991,17616,15069,17001,4886,2484,23652,21855,23634,18087,19497,22836,26457,6307",
@@ -97,6 +99,7 @@ FILTERS = {
     "dice_game":"13797",
     "logic_game":"14055",
     "animals":"13971",
+    "economic":"13602",
     # Mechanics, use "mech:dice_rolling"
     "solo":"13620",
     "cooperative":"13830",
@@ -106,7 +109,7 @@ FILTERS = {
 
 # Metadata to identify which filters are categories and which are mechanics
 # These lists contain the filter keys that should be prefixed with "cat:" or "mech:" in searches
-CATEGORY_FILTERS = ["card_game", "adventure", "dice_game", "logic_game", "animals"]
+CATEGORY_FILTERS = ["card_game", "adventure", "dice_game", "logic_game", "animals","economic"]
 MECHANIC_FILTERS = ["solo", "cooperative", "dice_rolling", "modular_board"]
 
 # Filter groups for UI organization
@@ -124,7 +127,7 @@ FAVORITES = {
         "valuable": [
             "Karetní", "Dobrodružné", "Fantasy", "Průzkum vesmíru",
             "Sci-fi", "Ekonomické", "Průzkum", "Bludiště",
-            "Kostkové", "Logické", "Zvířata"],
+            "Kostkové", "Logické", "Zvířata","Ekonomické"],
         "unwanted": ["V reálném čase", "Horror"]
     },
     "mechanics": {
