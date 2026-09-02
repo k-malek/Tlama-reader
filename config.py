@@ -123,20 +123,22 @@ FILTER_GROUPS = {
 
 FAVORITES = {
     "categories": {
-        "very_valuable": ["Kostkové"],
+        "very_valuable": ["Kostkové","Karetní"],
         "valuable": [
-            "Karetní", "Dobrodružné", "Fantasy", "Průzkum vesmíru",
+            "Dobrodružné", "Fantasy", "Průzkum vesmíru",
             "Sci-fi", "Ekonomické", "Průzkum", "Bludiště",
             "Kostkové", "Logické", "Zvířata","Ekonomické"],
         "unwanted": ["V reálném čase", "Horror"]
     },
     "mechanics": {
         "very_valuable": [
-            "Solo / Solitaire Game", "Cooperative Game","Modular Board", "Dice Rolling"],
+            "Solo / Solitaire Game", "Cooperative Game","Modular Board", "Dice Rolling",
+            "Deck, Bag, and Pool Building"],
         "valuable": [
             "Variable Set-up", "Scenario / Mission / Campaign Game",
             "Hand Management", "Tile Placement", "Open Drafting",
-            "Variable Player Powers", "Tech Trees / Tech Tracks"],
+            "Variable Player Powers", "Tech Trees / Tech Tracks",
+            "Deck Construction"],
         "unwanted": ["Real-Time"]
     }
 }
