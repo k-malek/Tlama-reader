@@ -37,9 +37,9 @@ RATING_DISCOUNT_MAX = 10
 RATING_COMPLEXITY_BONUS = 50  # when complexity >= 3.5 and bgg >= 7.5
 RATING_PLAY_TIME_FILLER_PENALTY = 40  # games < 30 min
 
-# OneSignal email template used for daily and weekly deal messages.
-# custom_data matches the shape in new_daily_payload.json.
-EMAIL_TEMPLATE_ID = "c7d2b375-607f-4e6c-ab4c-3303ff90d5bd"
+# OneSignal email templates. custom_data for each matches the shape in new_daily_payload.json.
+EMAIL_TEMPLATE_ID = "c7d2b375-607f-4e6c-ab4c-3303ff90d5bd"  # daily deal
+WEEKLY_EMAIL_TEMPLATE_ID = "5d4c5977-bb87-4754-a675-1d800d2aa86d"  # weekly deal
 
 # Shop game_type (Czech, as scraped) -> label sent to the email template.
 GAME_TYPE_LABELS = {

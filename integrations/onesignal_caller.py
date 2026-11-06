@@ -8,6 +8,7 @@ import onesignal
 from config import (
     EMAIL_TEMPLATE_ID,
     GAME_TYPE_LABELS,
+    WEEKLY_EMAIL_TEMPLATE_ID,
     RATING_GREAT,
     RATING_OUTSTANDING,
     validate_onesignal_env,
@@ -72,43 +73,48 @@ def _rating_label(my_rating: Any) -> str:
     return "Nice"
 
 
-def build_email_payload(game_json: dict) -> dict:
-    """Shape game data as the custom_data object expected by the email template."""
+def build_game_object(game_json: dict) -> dict:
+    """Game fields. Weekly custom_data is {"game": this object}."""
     return {
-        "rating": _rating_label(game_json.get("my_rating")),
-        "offer_date": date.today().isoformat(),
-        "game": {
-            "name": game_json.get("name"),
-            "game_categories": _as_list(game_json.get("game_categories")),
-            "min_players": _as_int(game_json.get("min_players")),
-            "max_players": _as_int(game_json.get("max_players")),
-            "publisher": game_json.get("distributor"),
-            "image": game_json.get("image"),
-            "original_price": _as_int(game_json.get("original_price")),
-            "final_price": _as_int(game_json.get("final_price")),
-            "discount_percent": _as_int(game_json.get("discount_percent")),
-            "url": game_json.get("url"),
-            "min_age": _as_int(game_json.get("min_age")),
-            "my_rating": _as_int(game_json.get("my_rating")),
-            "bgg_rating": game_json.get("bgg_rating"),
-            "play_time_minutes": _as_int(game_json.get("play_time_minutes")),
-            "complexity": game_json.get("complexity"),
-            "game_mechanics": _as_list(game_json.get("game_mechanics")),
-            "game_type": _map_game_type(game_json.get("game_type")),
-        },
+        "name": game_json.get("name"),
+        "game_categories": _as_list(game_json.get("game_categories")),
+        "min_players": _as_int(game_json.get("min_players")),
+        "max_players": _as_int(game_json.get("max_players")),
+        "publisher": game_json.get("distributor"),
+        "image": game_json.get("image"),
+        "original_price": _as_int(game_json.get("original_price")),
+        "final_price": _as_int(game_json.get("final_price")),
+        "discount_percent": _as_int(game_json.get("discount_percent")),
+        "url": game_json.get("url"),
+        "min_age": _as_int(game_json.get("min_age")),
+        "my_rating": _as_int(game_json.get("my_rating")),
+        "bgg_rating": game_json.get("bgg_rating"),
+        "play_time_minutes": _as_int(game_json.get("play_time_minutes")),
+        "complexity": game_json.get("complexity"),
+        "game_mechanics": _as_list(game_json.get("game_mechanics")),
+        "game_type": _map_game_type(game_json.get("game_type")),
     }
 
 
-def send_deal_email(game_json: dict) -> Optional[dict]:
-    """Send the deal email template to the configured user."""
+def build_email_payload(game_json: dict) -> dict:
+    """Daily custom_data: rating, offer date, and the game object."""
+    return {
+        "rating": _rating_label(game_json.get("my_rating")),
+        "offer_date": date.today().isoformat(),
+        "game": build_game_object(game_json),
+    }
+
+
+def _send_email(template_id: str, custom_data: dict) -> Optional[dict]:
+    """Send the given deal email template to the configured user."""
     validate_onesignal_env()
     external_id = os.getenv("MY_USER_EXTERNAL_ID")
     notification = Notification(
         app_id=app_id,
-        template_id=EMAIL_TEMPLATE_ID,
+        template_id=template_id,
         include_aliases=IncludeAliases(external_id=[external_id] if external_id else []),
         target_channel="email",
-        custom_data=build_email_payload(game_json),
+        custom_data=custom_data,
     )
     with onesignal.ApiClient(configuration) as api_client:
         api_instance = default_api.DefaultApi(api_client)
@@ -127,3 +133,13 @@ def send_deal_email(game_json: dict) -> Optional[dict]:
         except Exception as e:
             logger.warning("Unexpected error in OneSignal integration: %s", e)
             return None
+
+
+def send_deal_email(game_json: dict) -> Optional[dict]:
+    """Send the daily deal email. custom_data includes rating, offer_date, and game."""
+    return _send_email(EMAIL_TEMPLATE_ID, build_email_payload(game_json))
+
+
+def send_weekly_deal_email(game_json: dict) -> Optional[dict]:
+    """Send the weekly deal email. custom_data is {"game": ...} only."""
+    return _send_email(WEEKLY_EMAIL_TEMPLATE_ID, {"game": build_game_object(game_json)})

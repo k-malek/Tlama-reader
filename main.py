@@ -4,7 +4,7 @@ import sys
 
 from config import MIN_RATING_FOR_NOTIFICATION, PROMO_ACCEPTED_GAME_TYPES, to_czk_game_url
 from database import get_excluded_game_urls
-from integrations.onesignal_caller import send_deal_email
+from integrations.onesignal_caller import send_deal_email, send_weekly_deal_email
 from model.board_game import BoardGame
 from ui.interface import run_interface
 from utils.blocklist import get_blocklist_path, is_url_excluded
@@ -59,7 +59,7 @@ def run_best_deals_check() -> None:
         best_deal_game = games[0]
         best_deal_game.deal = "weekly"
         logger.info(best_deal_game.get_data_row())
-        send_deal_email(best_deal_game.to_json())
+        send_weekly_deal_email(best_deal_game.to_json())
 
 
 def run_search_check(filters: list | None = None, endpoint: str = "shop") -> None:
