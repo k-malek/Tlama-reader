@@ -37,6 +37,17 @@ RATING_DISCOUNT_MAX = 10
 RATING_COMPLEXITY_BONUS = 50  # when complexity >= 3.5 and bgg >= 7.5
 RATING_PLAY_TIME_FILLER_PENALTY = 40  # games < 30 min
 
+# OneSignal email template used for daily and weekly deal messages.
+# custom_data matches the shape in new_daily_payload.json.
+EMAIL_TEMPLATE_ID = "c7d2b375-607f-4e6c-ab4c-3303ff90d5bd"
+
+# Shop game_type (Czech, as scraped) -> label sent to the email template.
+GAME_TYPE_LABELS = {
+    "Základní hra": "base game",
+    "Rozšíření": "extension",
+    "Doplněk": "accessory",
+}
+
 # OneSignal environment variable names
 ONESIGNAL_ENV_VARS = [
     "ONESIGNAL_APP_ID",
@@ -60,6 +71,7 @@ ENDPOINTS = {
     "rentals": "/pujcovna/",
     "bazar": "/bazar/",
     "game": "/{game_url}",
+    "svatek": "/svatek/",
 }
 
 # Map English/other-language paths to Czech (CZK prices)

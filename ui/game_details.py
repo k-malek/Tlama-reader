@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import customtkinter as ctk
 
 from config import MIN_RATING_FOR_NOTIFICATION
-from integrations.onesignal_caller import send_custom_event
+from integrations.onesignal_caller import send_deal_email
 
 if TYPE_CHECKING:
     from model.board_game import BoardGame
@@ -98,12 +98,12 @@ class GameDetailsWindow(ctk.CTkToplevel):
         if self.game.my_rating and self.game.my_rating > MIN_RATING_FOR_NOTIFICATION:
             notify_button = ctk.CTkButton(
                 scroll_frame,
-                text="🔔 Send OneSignal Notification",
+                text="🔔 Send OneSignal Email",
                 command=self._send_notification,
                 fg_color="green",
             )
             notify_button.pack(pady=20)
 
     def _send_notification(self) -> None:
-        """Send OneSignal notification for the current game."""
-        send_custom_event(self.game.to_json())
+        """Send the OneSignal deal email for the current game."""
+        send_deal_email(self.game.to_json())

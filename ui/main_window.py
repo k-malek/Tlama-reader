@@ -21,7 +21,7 @@ from database import (
 from utils.blocklist import get_blocklist_path, is_url_excluded
 from model.board_game import BoardGame
 from ui.game_details import GameDetailsWindow
-from utils.search import search_for_game
+from utils.search import fetch_and_save_game, search_for_game
 from website_caller import WebsiteCaller
 
 
@@ -130,6 +130,19 @@ class TlamaCallerGUI(ctk.CTk):
             fg_color="#d97706", hover_color="#b45309"
         ).pack(side="right", padx=10)
         ctk.CTkButton(top_frame, text="🔄 Refresh", command=self._refresh_database).pack(side="right", padx=10)
+
+        self.add_game_btn = ctk.CTkButton(
+            top_frame, text="➕ Add", width=70, command=self._add_game_by_url,
+            fg_color="#1f538d", hover_color="#14375e",
+        )
+        self.add_game_btn.pack(side="right", padx=(0, 5))
+        self.add_game_url_entry = ctk.CTkEntry(
+            top_frame,
+            width=280,
+            placeholder_text="Paste game URL to add...",
+        )
+        self.add_game_url_entry.pack(side="right", padx=(10, 5))
+        self.add_game_url_entry.bind("<Return>", lambda e: self._add_game_by_url())
 
         search_frame = ctk.CTkFrame(self.db_tab)
         search_frame.pack(fill="x", padx=20, pady=10)
@@ -466,6 +479,35 @@ class TlamaCallerGUI(ctk.CTk):
                 self.after(0, lambda msg=str(err): self.status_label.configure(text=f"❌ Error: {msg}"))
 
         threading.Thread(target=rerate, daemon=True).start()
+
+    def _add_game_by_url(self) -> None:
+        url = self.add_game_url_entry.get().strip()
+        if not url:
+            self.status_label.configure(text="⚠️ Please enter a game URL")
+            return
+        if not self.caller:
+            self.status_label.configure(text="⏳ Please wait, initializing...")
+            return
+
+        self.add_game_btn.configure(state="disabled")
+        self.status_label.configure(text="⏳ Fetching and rating game...")
+
+        def add() -> None:
+            try:
+                game = fetch_and_save_game(url, self.caller)
+                rating = f"{game.my_rating:.1f}" if game.my_rating is not None else "N/A"
+                name = game.name or "Game"
+                self.after(0, lambda: self.add_game_url_entry.delete(0, "end"))
+                self.after(0, lambda: self._refresh_database())
+                self.after(0, lambda: self.status_label.configure(text=f"✅ Added {name} (rating: {rating})"))
+            except ValueError as err:
+                self.after(0, lambda msg=str(err): self.status_label.configure(text=f"❌ {msg}"))
+            except Exception as err:
+                self.after(0, lambda msg=str(err): self.status_label.configure(text=f"❌ Error: {msg}"))
+            finally:
+                self.after(0, lambda: self.add_game_btn.configure(state="normal"))
+
+        threading.Thread(target=add, daemon=True).start()
 
     def _search_database(self) -> None:
         self.db_tree.delete(*self.db_tree.get_children())

@@ -1,9 +1,11 @@
-from website_caller import WebsiteCaller
-from model.board_game import BoardGame
-from bs4 import BeautifulSoup
-from config import BASE_URL
-from database import game_exists, load_game, save_game
 import logging
+
+from bs4 import BeautifulSoup
+
+from config import BASE_URL
+from model.board_game import BoardGame
+from utils.search import fetch_and_save_game
+from website_caller import WebsiteCaller
 
 logger = logging.getLogger(__name__)
 
@@ -27,36 +29,20 @@ def get_promo_game_url(caller: WebsiteCaller) -> str:
 
 
 def get_promo_game(caller: WebsiteCaller) -> BoardGame:
-    """Get the full BoardGame object for the current promo game."""
-    logger.debug("Starting to get promo game")
+    """Get the current promo game, always re-reading its product page.
+
+    A saved row is not reused. Daily promo prices change, and an older row
+    would keep yesterday's price and omit the crossed-out original price.
+    """
     url = get_promo_game_url(caller)
-    logger.debug(f"Checking if game exists in database: {url}")
-
-    # Check if game exists in database
-    if game_exists(url):
-        logger.debug("Game found in database, loading from database")
-        board_game = load_game(url)
-        # If image is missing (old games saved before image column), re-fetch to populate it
-        if not board_game.image:
-            logger.debug("Game image missing, re-fetching game data to populate image")
-            game_data = caller.get_text(url)
-            board_game = BoardGame(game_data, url)
-            save_game(board_game)
-            logger.debug("Game data re-fetched and saved with image")
-        else:
-            logger.debug(f"Game loaded from database: {board_game.name} (Rating: {board_game.my_rating})")
-        return board_game
-
-    # Fetch from website
-    logger.debug("Game not in database, fetching from website")
-    game_data = caller.get_text(url)
-    board_game = BoardGame(game_data, url)
-    logger.debug(f"Game data parsed: {board_game.name} (Rating: {board_game.my_rating})")
-
-    # Save to database
-    logger.debug("Saving game to database")
-    save_game(board_game)
-    logger.debug("Game saved to database successfully")
-
+    logger.debug("Refreshing promo game from website: %s", url)
+    board_game = fetch_and_save_game(url, caller)
+    logger.debug(
+        "Promo game ready: %s | %s Kč (original %s Kč, −%s%%)",
+        board_game.name,
+        board_game.final_price,
+        board_game.original_price,
+        board_game.discount_percent,
+    )
     return board_game
 

@@ -3,12 +3,51 @@ from typing import Callable, Optional
 
 from bs4 import BeautifulSoup
 
-from config import BASE_URL, ENDPOINTS, FILTERS
+from config import BASE_URL, ENDPOINTS, FILTERS, to_czk_game_url
 from database import game_exists, load_game, save_game
 from model.board_game import BoardGame
 from website_caller import WebsiteCaller
 
 logger = logging.getLogger(__name__)
+
+
+def normalize_game_url(url: str) -> str:
+    """Normalize a Tlama Games product URL to a full Czech (CZK) URL."""
+    url = url.strip()
+    if not url:
+        raise ValueError("URL cannot be empty")
+    url = to_czk_game_url(url)
+    if url.startswith("/"):
+        url = f"{BASE_URL}{url}"
+    elif not url.startswith("http"):
+        raise ValueError("Invalid game URL")
+    if "tlamagames.com" not in url:
+        raise ValueError("URL must be from tlamagames.com")
+    return url
+
+
+def fetch_and_save_game(url: str, caller: WebsiteCaller) -> BoardGame:
+    """Fetch a single game page, rate it, and save to the database."""
+    full_url = normalize_game_url(url)
+
+    preserved_owned = False
+    preserved_evil = False
+    if game_exists(full_url):
+        existing_game = load_game(full_url)
+        if existing_game:
+            preserved_owned = getattr(existing_game, "owned", False)
+            preserved_evil = getattr(existing_game, "has_demonic_vibe", False)
+
+    game_data = caller.get_text(full_url)
+    try:
+        board_game = BoardGame(game_data, full_url)
+    except ValueError as e:
+        raise ValueError(f"Could not parse game page: {e}") from e
+
+    board_game.owned = preserved_owned
+    board_game.has_demonic_vibe = preserved_evil
+    save_game(board_game)
+    return board_game
 
 
 def search_for_game(
@@ -85,38 +124,14 @@ def games_standings(
         full_url = f"{BASE_URL}{game_url}"
         logger.debug("Fetching game: %s", full_url)
 
-        if game_exists(full_url):
-            # Always re-fetch game data to get latest price and other updated information
-            # But preserve user-set boolean values (owned, has_demonic_vibe)
-            existing_game = load_game(full_url)
-            preserved_owned = getattr(existing_game, 'owned', False) if existing_game else False
-            preserved_evil = getattr(existing_game, 'has_demonic_vibe', False) if existing_game else False
-
-            game_data = caller.get_text(full_url)
-            try:
-                board_game = BoardGame(game_data, full_url)
-                # Preserve the boolean values that users set
-                board_game.owned = preserved_owned
-                board_game.has_demonic_vibe = preserved_evil
-            except ValueError as e:
-                logger.warning("Error parsing game data for %s: %s", full_url, e)
-                if progress_callback:
-                    progress_callback(stage="games", current=idx, total=total_games,
-                                     message=f"Fetching game {idx}/{total_games}...")
-                continue
-            save_game(board_game)
-        else:
-            game_data = caller.get_text(full_url)
-            try:
-                board_game = BoardGame(game_data, full_url)
-            except ValueError as e:
-                logger.warning("Error parsing game data for %s: %s", full_url, e)
-                if progress_callback:
-                    progress_callback(stage="games", current=idx, total=total_games,
-                                     message=f"Fetching game {idx}/{total_games}...")
-                continue
-            board_game.rate()
-            save_game(board_game)
+        try:
+            board_game = fetch_and_save_game(full_url, caller)
+        except ValueError as e:
+            logger.warning("Error fetching game %s: %s", full_url, e)
+            if progress_callback:
+                progress_callback(stage="games", current=idx, total=total_games,
+                                 message=f"Fetching game {idx}/{total_games}...")
+            continue
 
         games.append(board_game)
 

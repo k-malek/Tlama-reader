@@ -71,3 +71,4 @@ output/
 
 # Database
 games.db
+new_daily_payload.json
